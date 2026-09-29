@@ -162,6 +162,8 @@ Danach `http://127.0.0.1:8123/admin.php` öffnen, das Passwort ist `geheim123`. 
 
 GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push und Pull Request alle Tests aus: mit PHP 8.1 + MariaDB 10.6 und mit PHP 8.4 + MySQL 8.4. Außerdem prüft der Workflow, ob der Fragenkatalog aktuell ist.
 
+Bei jedem Pull Request, der `public/` betrifft, erzeugt `.github/workflows/ui-screenshots.yml` per Playwright Screenshots der Umfrage- und Admin-Seiten (`tests/ui-screenshots.mjs`). `.github/workflows/ui-screenshot-comment.yml` bettet sie anschließend als Kommentar in den Pull Request ein.
+
 ## Lizenz
 
 [MIT](LICENSE)

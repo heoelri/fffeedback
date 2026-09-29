@@ -1,0 +1,55 @@
+name: UI-Screenshots
+
+on:
+  pull_request:
+    paths:
+      - public/**
+      - tools/seed-local.php
+      - tests/ui-screenshots.mjs
+      - .github/workflows/ui-screenshots.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-screenshots-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: fff_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=fff_test;charset=utf8mb4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, openssl
+          tools: none
+      - name: Screenshots erstellen
+        run: |
+          npm install --prefix /tmp/ui --no-save --package-lock=false playwright@1.55.0
+          /tmp/ui/node_modules/.bin/playwright install --with-deps chromium
+          cp tests/ui-screenshots.mjs /tmp/ui/
+          REPO_ROOT="$PWD" node /tmp/ui/ui-screenshots.mjs
+      - name: Screenshots als Artefakt speichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-screenshots
+          path: screenshots/*.png
+          if-no-files-found: error
