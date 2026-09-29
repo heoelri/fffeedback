@@ -14,6 +14,8 @@ Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was nich
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Würdest du Freunden empfehlen, bei uns mitzumachen?**  
   Auswahl: Ja · Eher ja · Eher nein · Nein + optionaler Kommentar
+- **Wie wahrscheinlich ist es, dass du in den nächsten zwei Jahren aufhörst?**  
+  Auswahl: Sehr unwahrscheinlich · Eher unwahrscheinlich · Eher wahrscheinlich · Sehr wahrscheinlich + optionaler Kommentar
 - **Möchtest du zum Thema „Gesamteindruck“ noch etwas sagen?**  
   Freitext
 
@@ -34,11 +36,17 @@ Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was nich
 
 - **Ich fühle mich für Einsätze gut vorbereitet.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
-- **Wie bewertest du die Abläufe bei Einsätzen (Ausrücken, Führung vor Ort, Aufräumen)?**  
+- **Wie bewertest du das Ausrücken bei Einsätzen?**  
+  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
+- **Wie bewertest du die Führung vor Ort bei Einsätzen?**  
+  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
+- **Wie bewertest du das Aufräumen und Nachbereiten nach Einsätzen?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Einsätze werden ausreichend nachbesprochen.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
 - **Nach belastenden Einsätzen weiß ich, wo ich Unterstützung bekomme.**  
+  Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
+- **Der zeitliche Aufwand für den Feuerwehrdienst lässt sich gut mit Beruf und Familie vereinbaren.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
 - **Möchtest du zum Thema „Einsätze“ noch etwas sagen?**  
   Freitext
@@ -58,11 +66,11 @@ Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was nich
 
 ## Gerätehaus
 
-- **Wie bewertest du das Gerätehaus insgesamt?**  
-  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Wie bewertest du Umkleide und Spinde?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Wie bewertest du Sauberkeit und Ordnung?**  
+  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
+- **Wie bewertest du das Gerätehaus insgesamt?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Was ist gut am Gerätehaus?**  
   Freitext
@@ -71,16 +79,23 @@ Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was nich
 - **Möchtest du zum Thema „Gerätehaus“ noch etwas sagen?**  
   Freitext
 
+## Fahrzeuge und technische Ausstattung
+
+- **Wie bewertest du den technischen Zustand und die Beladung der Fahrzeuge?**  
+  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
+- **Möchtest du zum Thema „Fahrzeuge und technische Ausstattung“ noch etwas sagen?**  
+  Freitext
+
 ## Persönliche Schutzausrüstung
 
-- **Wie bewertest du deine persönliche Schutzausrüstung insgesamt?**  
-  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Wie gut passt deine Schutzausrüstung?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Wie bewertest du den Zustand deiner Schutzausrüstung?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Nach einem Einsatz bekomme ich schnell saubere Ersatzkleidung.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
+- **Wie bewertest du deine persönliche Schutzausrüstung insgesamt?**  
+  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Welche Veränderungen wünschst du dir?**  
   Freitext
 - **Möchtest du zum Thema „Persönliche Schutzausrüstung“ noch etwas sagen?**  
@@ -109,19 +124,19 @@ Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was nich
 
 ## Übungsdienste
 
-- **Wie bewertest du die Qualität der Übungsdienste?**  
-  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Die Übungsdienste sind abwechslungsreich.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
 - **Die Übungsdienste bereiten mich gut auf Einsätze vor.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
-- **Was soll mehr geübt werden? (Mehrfachauswahl)**  
-  Mehrfachauswahl: Brandbekämpfung · Technische Hilfe · Atemschutz · Gefahrgut / ABC · Maschinisten / Fahrzeugkunde · Erste Hilfe · Übungen mit anderen Einheiten · Theorie / Unterricht + optionaler Kommentar
+- **Wie bewertest du die Qualität der Übungsdienste insgesamt?**  
+  Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Was war gut an den Übungsdiensten?**  
   Freitext
 - **Welche Themen haben dir gefehlt?**  
   Freitext
-- **Wie bewertest du die Sonderausbildungen (z. B. Atemschutz, Drehleiter, Maschinist)?**  
+- **Was soll mehr geübt werden? (Mehrfachauswahl)**  
+  Mehrfachauswahl: Brandbekämpfung · Technische Hilfe · Atemschutz · Gefahrgut / ABC · Maschinisten / Fahrzeugkunde · Erste Hilfe · Übungen mit anderen Einheiten · Theorie / Unterricht + optionaler Kommentar
+- **Wie bewertest du die Sonderausbildungen wie Drehleiter oder Maschinist (ohne Atemschutz)?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Hast du 2026 an der stadtweiten ABC-Ausbildung teilgenommen?**  
   Auswahl: Ja · Nein + optionaler Kommentar
@@ -169,6 +184,8 @@ _Wenn du etwas nicht beurteilen kannst, wähle „Kann ich nicht beurteilen“._
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
 - **Ich fühle mich eingebunden.**  
   Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
+- **Ich kann Fehler ansprechen, ohne negative Konsequenzen befürchten zu müssen.**  
+  Auswahl: trifft nicht zu · trifft eher nicht zu · teils/teils · trifft eher zu · trifft voll zu · Kann ich nicht beurteilen + optionaler Kommentar
 - **Wie bewertest du die Arbeit der Einheitsführung?**  
   Auswahl: sehr schlecht · schlecht · mittel · gut · sehr gut · Kann ich nicht beurteilen + optionaler Kommentar
 - **Was macht die Einheitsführung gut?**  
@@ -197,6 +214,8 @@ _Diese Angaben nutzen wir nur, um Ergebnisse nach Gruppen auszuwerten. Gruppen m
 
 - **Wie alt bist du?**  
   Auswahl: 18–29 · 30–45 · 46 und älter + optionaler Kommentar
+- **Wie lange bist du schon in der Einsatzabteilung?**  
+  Auswahl: Weniger als 2 Jahre · 2 bis 10 Jahre · Mehr als 10 Jahre + optionaler Kommentar
 - **Geschlecht**  
   Auswahl: Männlich · Weiblich · Divers / keine Angabe + optionaler Kommentar
 - **Deine höchste Qualifikation**  
