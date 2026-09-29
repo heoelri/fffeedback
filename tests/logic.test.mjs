@@ -39,6 +39,6 @@ test('Freitext je Kategorie und negative Antworten', () => {
   assert.ok(qs.some((q) => q.id === 'atemschutz_frei') && !qs.some((q) => q.id === 'person_frei'));
   const [scale] = qs;
   const empfehlung = qs.find((q) => q.id === 'empfehlung');
-  assert.ok(isNegative(scale, 1) && isNegative(scale, 2) && !isNegative(scale, 3) && !isNegative(scale, 'na'));
+  assert.ok(isNegative(scale, 4) && isNegative(scale, 5) && !isNegative(scale, 3) && !isNegative(scale, 'na'));
   assert.ok(isNegative(empfehlung, 'Nein') && !isNegative(empfehlung, 'Ja'));
 });

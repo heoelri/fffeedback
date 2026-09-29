@@ -134,7 +134,7 @@ Kopiere `public/surveys/dahlbruch-2026.json` und ändere `slug`, Texte und Frage
 }
 ```
 
-Bei `scale` gelten die Stufen 1–2 automatisch als negativ. Bei `single`/`multi` legt `negative` fest, welche Antworten den Hinweis „Was läuft nicht gut?“ auslösen. Der Import prüft die Datei und meldet Fehler. Das Gleiche tun die Tests für alle Dateien in `public/surveys/`.
+Bei `scale` gilt: Stufe 1 ist die positivste Antwort, Stufen 4–5 gelten automatisch als negativ. Bei `single`/`multi` legt `negative` fest, welche Antworten den Hinweis „Was läuft nicht gut?“ auslösen. Der Import prüft die Datei und meldet Fehler. Das Gleiche tun die Tests für alle Dateien in `public/surveys/`.
 
 ## Entwicklung und Tests
 

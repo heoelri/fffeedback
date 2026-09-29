@@ -1,7 +1,7 @@
 // Browser-side rules. Mirrors questions()/sanitize() in lib.php; tests/logic.test.mjs checks both agree.
 export const SCALES = {
-  rate: ['sehr schlecht', 'schlecht', 'mittel', 'gut', 'sehr gut'],
-  agree: ['trifft nicht zu', 'trifft eher nicht zu', 'teils/teils', 'trifft eher zu', 'trifft voll zu'],
+  rate: ['sehr gut', 'gut', 'mittel', 'schlecht', 'sehr schlecht'],
+  agree: ['trifft voll zu', 'trifft eher zu', 'teils/teils', 'trifft eher nicht zu', 'trifft nicht zu'],
 };
 export const NA = 'na';
 export const NA_LABEL = 'Kann ich nicht beurteilen';
@@ -26,7 +26,7 @@ const matches = (value, list) => [].concat(value ?? []).some((v) => list.include
 
 export const isVisible = (q, answers) => !q.showIf || matches(answers[q.showIf.q], q.showIf.in);
 
-export const isNegative = (q, v) => (q.type === 'scale' ? v === 1 || v === 2 : matches(v, q.negative ?? []));
+export const isNegative = (q, v) => (q.type === 'scale' ? v === 4 || v === 5 : matches(v, q.negative ?? []));
 
 function isValid(q, v) {
   switch (q.type) {

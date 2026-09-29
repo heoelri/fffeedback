@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 const SCALES = [
-    'rate' => ['sehr schlecht', 'schlecht', 'mittel', 'gut', 'sehr gut'],
-    'agree' => ['trifft nicht zu', 'trifft eher nicht zu', 'teils/teils', 'trifft eher zu', 'trifft voll zu'],
+    'rate' => ['sehr gut', 'gut', 'mittel', 'schlecht', 'sehr schlecht'],
+    'agree' => ['trifft voll zu', 'trifft eher zu', 'teils/teils', 'trifft eher nicht zu', 'trifft nicht zu'],
 ];
 const NA = 'na';
 const MAX_TEXT = 2000;
