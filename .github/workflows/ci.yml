@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            db: mariadb:10.6
+          - php: '8.4'
+            db: mysql:8.4
+    services:
+      db:
+        image: ${{ matrix.db }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: fff_test
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: fff_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot || healthcheck.sh --connect"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, openssl
+          tools: none
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: PHP-Syntax
+        run: find public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: PHP-Tests (Unit + Ende-zu-Ende gegen ${{ matrix.db }})
+        run: php tests/run.php
+      - name: JS-Tests (inkl. Gleichheit Browser/Server)
+        run: node --test 'tests/*.test.mjs'
+      - name: Fragenkatalog aktuell?
+        run: |
+          node tools/catalog.mjs public/surveys/dahlbruch-2026.json > docs/fragenkatalog.md
+          git diff --exit-code docs/fragenkatalog.md

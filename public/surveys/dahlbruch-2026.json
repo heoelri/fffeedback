@@ -1,0 +1,161 @@
+{
+  "slug": "dahlbruch-2026",
+  "title": "Feedback 2026 – Einheit Dahlbruch",
+  "intro": "Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was nicht. Deine ehrliche Meinung hilft uns dabei – auch und gerade Kritik. Die Umfrage dauert ca. 10–15 Minuten. Alle Fragen sind freiwillig. Deine Antworten werden automatisch zwischengespeichert, du kannst also jederzeit unterbrechen und über deinen Link weitermachen. Die Ergebnisse stellen wir allen in der Einheit vor.",
+  "anonymity": "Deine Antworten sind anonym. Beim Absenden werden sie von deiner Einladung getrennt gespeichert – niemand kann sehen, wer was geantwortet hat. Gespeichert wird nur, ob du teilgenommen hast (damit wir dich nicht unnötig erinnern). Ausgewertet wird erst nach Ende der Umfrage, und nach Alter oder Qualifikation nur für Gruppen ab 5 Personen. Tipp: Schreibe Freitexte so, dass sie keine Rückschlüsse auf dich zulassen.",
+  "reportFilters": ["alter", "qualifikation"],
+  "mail": {
+    "subject": "Deine Meinung zählt: {title}",
+    "text": "Hallo,\n\nwir wollen besser werden – und dafür brauchen wir deine ehrliche Meinung.\nBitte nimm dir ca. 10–15 Minuten Zeit für unsere anonyme Umfrage:\n\n{link}\n\nDer Link ist persönlich, bitte nicht weitergeben. Deine Antworten sind anonym.\n\nDanke!\nDeine Einheitsführung"
+  },
+  "reminder": {
+    "subject": "Erinnerung: {title}",
+    "text": "Hallo,\n\ndu hast an unserer anonymen Umfrage noch nicht teilgenommen. Jede Stimme hilft uns, besser zu werden:\n\n{link}\n\nBereits begonnene Antworten sind gespeichert.\n\nDanke!\nDeine Einheitsführung"
+  },
+  "sections": [
+    {
+      "id": "gesamt",
+      "title": "Gesamteindruck",
+      "questions": [
+        { "id": "gesamt_bewertung", "type": "scale", "text": "Wie bewertest du das Jahr 2026 in der Einheit Dahlbruch insgesamt?" },
+        { "id": "kameradschaft", "type": "scale", "text": "Wie bewertest du Kameradschaft und Stimmung in der Einheit?" },
+        { "id": "empfehlung", "type": "single", "text": "Würdest du Freunden empfehlen, bei uns mitzumachen?", "options": ["Ja", "Eher ja", "Eher nein", "Nein"], "negative": ["Eher nein", "Nein"] }
+      ]
+    },
+    {
+      "id": "beteiligung",
+      "title": "Deine Beteiligung",
+      "questions": [
+        { "id": "uebungen", "type": "single", "text": "Wie oft nimmst du an Übungsdiensten teil?", "options": ["Selten", "Oft", "Fast immer"] },
+        { "id": "uebungen_warum", "type": "multi", "text": "Was hält dich von den Übungsdiensten ab?", "options": ["Arbeit / Schichtdienst", "Kinder / Familie", "Termin oder Uhrzeit passt nicht", "Themen sprechen mich nicht an", "Stimmung / Umgang", "Gesundheit", "Sonstiges"], "showIf": { "q": "uebungen", "in": ["Selten"] } },
+        { "id": "einsaetze", "type": "single", "text": "An wie vielen Einsätzen hast du 2026 ungefähr teilgenommen?", "options": ["Weniger als 5", "5 bis 10", "Mehr als 10"] },
+        { "id": "einsaetze_warum", "type": "multi", "text": "Woran liegt das?", "options": ["Wohnort (zu weit weg)", "Arbeit (tagsüber nicht verfügbar)", "Fehlende Qualifikation", "Kein Meldeempfänger", "Kinder / Familie", "Sonstiges"], "showIf": { "q": "einsaetze", "in": ["Weniger als 5"] } }
+      ]
+    },
+    {
+      "id": "einsatz",
+      "title": "Einsätze",
+      "questions": [
+        { "id": "einsatz_vorbereitet", "type": "scale", "scale": "agree", "text": "Ich fühle mich für Einsätze gut vorbereitet." },
+        { "id": "einsatz_ablauf", "type": "scale", "text": "Wie bewertest du die Abläufe bei Einsätzen (Ausrücken, Führung vor Ort, Aufräumen)?" },
+        { "id": "einsatz_nachbesprechung", "type": "scale", "scale": "agree", "text": "Einsätze werden ausreichend nachbesprochen." },
+        { "id": "einsatz_belastung", "type": "scale", "scale": "agree", "text": "Nach belastenden Einsätzen weiß ich, wo ich Unterstützung bekomme." }
+      ]
+    },
+    {
+      "id": "atemschutz",
+      "title": "Atemschutz",
+      "questions": [
+        { "id": "agt_tauglich", "type": "single", "text": "Bist du atemschutztauglich?", "options": ["Ja", "Nein"] },
+        { "id": "agt_warum_nicht", "type": "multi", "text": "Warum nicht?", "options": ["Alter", "Aufwand (Untersuchung, Übungsstrecke, Unterweisung)", "Körperliche Fitness", "Gesundheit", "Kein Interesse", "Sonstiges"], "showIf": { "q": "agt_tauglich", "in": ["Nein"] } },
+        { "id": "agt_termine", "type": "single", "text": "Gibt es ausreichend Termine für die Atemschutzübungsstrecke?", "options": ["Ja", "Eher ja", "Eher nein", "Nein"], "negative": ["Eher nein", "Nein"], "showIf": { "q": "agt_tauglich", "in": ["Ja"] } },
+        { "id": "agt_probleme", "type": "text", "text": "Welche Probleme oder Herausforderungen siehst du beim Atemschutz?" }
+      ]
+    },
+    {
+      "id": "geraetehaus",
+      "title": "Gerätehaus",
+      "questions": [
+        { "id": "gh_gesamt", "type": "scale", "text": "Wie bewertest du das Gerätehaus insgesamt?" },
+        { "id": "gh_umkleide", "type": "scale", "text": "Wie bewertest du Umkleide und Spinde?" },
+        { "id": "gh_ordnung", "type": "scale", "text": "Wie bewertest du Sauberkeit und Ordnung?" },
+        { "id": "gh_gut", "type": "text", "text": "Was ist gut am Gerätehaus?" },
+        { "id": "gh_schlecht", "type": "text", "text": "Was ist schlecht oder fehlt?" }
+      ]
+    },
+    {
+      "id": "psa",
+      "title": "Persönliche Schutzausrüstung",
+      "questions": [
+        { "id": "psa_gesamt", "type": "scale", "text": "Wie bewertest du deine persönliche Schutzausrüstung insgesamt?" },
+        { "id": "psa_passform", "type": "scale", "text": "Wie gut passt deine Schutzausrüstung?" },
+        { "id": "psa_zustand", "type": "scale", "text": "Wie bewertest du den Zustand deiner Schutzausrüstung?" },
+        { "id": "psa_ersatz", "type": "scale", "scale": "agree", "text": "Nach einem Einsatz bekomme ich schnell saubere Ersatzkleidung." },
+        { "id": "psa_wuensche", "type": "text", "text": "Welche Veränderungen wünschst du dir?" }
+      ]
+    },
+    {
+      "id": "ausbildung",
+      "title": "Ausbildung und Lehrgänge",
+      "questions": [
+        { "id": "lehrgaenge", "type": "multi", "text": "Hast du 2026 Lehrgänge besucht? (Mehrfachauswahl)", "options": ["Auf Stadtebene", "Auf Kreisebene", "Auf Landesebene (IdF NRW)", "Keine"] },
+        { "id": "lg_stadt", "type": "scale", "text": "Wie bewertest du die Qualität der Lehrgänge auf Stadtebene?", "showIf": { "q": "lehrgaenge", "in": ["Auf Stadtebene"] } },
+        { "id": "lg_kreis", "type": "scale", "text": "Wie bewertest du die Qualität der Lehrgänge auf Kreisebene?", "showIf": { "q": "lehrgaenge", "in": ["Auf Kreisebene"] } },
+        { "id": "lg_land", "type": "scale", "text": "Wie bewertest du die Qualität der Lehrgänge auf Landesebene?", "showIf": { "q": "lehrgaenge", "in": ["Auf Landesebene (IdF NRW)"] } },
+        { "id": "lg_angebot", "type": "scale", "scale": "agree", "text": "Ich bin mit dem Lehrgangsangebot zufrieden." },
+        { "id": "lg_wunsch", "type": "single", "text": "Konntest du alle Lehrgänge besuchen, die du wolltest?", "options": ["Ja", "Nein", "Ich wollte keine besuchen"], "negative": ["Nein"] },
+        { "id": "lg_hindernis", "type": "multi", "text": "Was hat dich daran gehindert?", "options": ["Keinen Platz bekommen", "Termine passen nicht", "Arbeitgeber / Freistellung", "Kinder / Familie", "Sonstiges"], "showIf": { "q": "lg_wunsch", "in": ["Nein"] } },
+        { "id": "lg_fehlt", "type": "text", "text": "Welche Lehrgänge oder Inhalte fehlen dir?" }
+      ]
+    },
+    {
+      "id": "uebungsdienst",
+      "title": "Übungsdienste",
+      "questions": [
+        { "id": "ud_qualitaet", "type": "scale", "text": "Wie bewertest du die Qualität der Übungsdienste?" },
+        { "id": "ud_abwechslung", "type": "scale", "scale": "agree", "text": "Die Übungsdienste sind abwechslungsreich." },
+        { "id": "ud_praxis", "type": "scale", "scale": "agree", "text": "Die Übungsdienste bereiten mich gut auf Einsätze vor." },
+        { "id": "ud_mehr", "type": "multi", "text": "Was soll mehr geübt werden? (Mehrfachauswahl)", "options": ["Brandbekämpfung", "Technische Hilfe", "Atemschutz", "Gefahrgut / ABC", "Maschinisten / Fahrzeugkunde", "Erste Hilfe", "Übungen mit anderen Einheiten", "Theorie / Unterricht"] },
+        { "id": "ud_gut", "type": "text", "text": "Was war gut an den Übungsdiensten?" },
+        { "id": "ud_fehlt", "type": "text", "text": "Welche Themen haben dir gefehlt?" },
+        { "id": "sonderausbildung", "type": "scale", "text": "Wie bewertest du die Sonderausbildungen (z. B. Atemschutz, Drehleiter, Maschinist)?" },
+        { "id": "abc_teilnahme", "type": "single", "text": "Hast du 2026 an der stadtweiten ABC-Ausbildung teilgenommen?", "options": ["Ja", "Nein"] },
+        { "id": "abc_bewertung", "type": "scale", "text": "Wie bewertest du die stadtweite ABC-Ausbildung?", "showIf": { "q": "abc_teilnahme", "in": ["Ja"] } },
+        { "id": "abc_gut", "type": "text", "text": "Was war gut an der ABC-Ausbildung?", "showIf": { "q": "abc_teilnahme", "in": ["Ja"] } },
+        { "id": "abc_anders", "type": "text", "text": "Was war schlecht oder sollte anders gemacht werden?", "showIf": { "q": "abc_teilnahme", "in": ["Ja"] } }
+      ]
+    },
+    {
+      "id": "zusammenarbeit",
+      "title": "Zusammenarbeit",
+      "description": "Wenn du etwas nicht beurteilen kannst, wähle „Kann ich nicht beurteilen“.",
+      "questions": [
+        { "id": "za_nachbar", "type": "scale", "text": "Zusammenarbeit mit den Nachbareinheiten" },
+        { "id": "za_dlrg", "type": "scale", "text": "Zusammenarbeit mit der DLRG" },
+        { "id": "za_drk", "type": "scale", "text": "Zusammenarbeit mit dem DRK" },
+        { "id": "za_thw", "type": "scale", "text": "Zusammenarbeit mit dem THW" },
+        { "id": "za_agw", "type": "scale", "text": "Zusammenarbeit mit der Atemschutzwerkstatt" },
+        { "id": "za_kleiderkammer", "type": "scale", "text": "Zusammenarbeit mit der Kleiderkammer" },
+        { "id": "za_schlauchwerkstatt", "type": "scale", "text": "Zusammenarbeit mit der Schlauchwerkstatt" },
+        { "id": "ag_teilnahme", "type": "single", "text": "Hast du 2026 in einer Arbeitsgruppe auf Stadt- oder Kreisebene mitgewirkt?", "options": ["Ja", "Nein"] },
+        { "id": "ag_bewertung", "type": "scale", "text": "Wie bewertest du die Arbeit in der Arbeitsgruppe?", "showIf": { "q": "ag_teilnahme", "in": ["Ja"] } }
+      ]
+    },
+    {
+      "id": "fuehrung",
+      "title": "Kommunikation und Führung",
+      "questions": [
+        { "id": "kf_info", "type": "scale", "scale": "agree", "text": "Ich bekomme alle Informationen, die ich brauche." },
+        { "id": "kf_augenhoehe", "type": "scale", "scale": "agree", "text": "Die Kommunikation findet auf Augenhöhe statt." },
+        { "id": "kf_meinung", "type": "scale", "scale": "agree", "text": "Meine Meinung wird wahrgenommen." },
+        { "id": "kf_eingebunden", "type": "scale", "scale": "agree", "text": "Ich fühle mich eingebunden." },
+        { "id": "ef_bewertung", "type": "scale", "text": "Wie bewertest du die Arbeit der Einheitsführung?" },
+        { "id": "ef_gut", "type": "text", "text": "Was macht die Einheitsführung gut?" },
+        { "id": "ef_anders", "type": "text", "text": "Was würdest du anders machen?" },
+        { "id": "ef_feedback", "type": "text", "text": "Dein Feedback an die Einheitsführung" }
+      ]
+    },
+    {
+      "id": "allgemein",
+      "title": "Zum Schluss",
+      "freeText": false,
+      "questions": [
+        { "id": "allg_gut", "type": "text", "text": "Was lief 2026 gut?" },
+        { "id": "allg_schlecht", "type": "text", "text": "Was lief 2026 schlecht?" },
+        { "id": "allg_fehlt", "type": "text", "text": "Was fehlt dir?" },
+        { "id": "allg_zukunft", "type": "text", "text": "Was wünschst du dir für die Zukunft?" }
+      ]
+    },
+    {
+      "id": "person",
+      "title": "Zu deiner Person",
+      "description": "Diese Angaben nutzen wir nur, um Ergebnisse nach Gruppen auszuwerten. Gruppen mit weniger als 5 Antworten werden nie einzeln gezeigt. Alle Angaben sind freiwillig.",
+      "freeText": false,
+      "questions": [
+        { "id": "alter", "type": "single", "text": "Wie alt bist du?", "options": ["18–29", "30–45", "46 und älter"] },
+        { "id": "geschlecht", "type": "single", "text": "Geschlecht", "options": ["Männlich", "Weiblich", "Divers / keine Angabe"] },
+        { "id": "qualifikation", "type": "single", "text": "Deine höchste Qualifikation", "options": ["Truppmann / Truppfrau", "Truppführer/-in", "Gruppenführer/-in oder höher"] }
+      ]
+    }
+  ]
+}
