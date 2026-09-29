@@ -26,9 +26,9 @@ Ziele:
 | Zwischenspeichern, Absenden nur auf Wunsch | Automatisches Speichern während der Eingabe. Nach „Absenden“ sind keine Änderungen mehr möglich |
 | Anonymität | Siehe [Anonymitätskonzept](#anonymitätskonzept) |
 | Nutzungsstatistik | Eingeladen, Begonnen, Abgesendet, versendete Erinnerungen, Status je Einladung |
-| Auswertung | Nach Ende der Umfrage: Verteilungen, Mittelwerte, Kommentare und Freitexte |
-| Auswertung nach Altersklasse und Qualifikation | Filter im Bericht, nur für Gruppen ab 5 Antworten |
-| Erinnerungen | Ein Klick schreibt allen, die noch nicht abgesendet haben |
+| Auswertung | Nach Ende der Umfrage: Verteilungen, Mittelwerte, Kommentare und Freitexte, CSV-Export der Zahlen |
+| Auswertung nach Altersklasse, Mitgliedsdauer und Qualifikation | Filter im Bericht, nur für Gruppen ab 5 Antworten, ohne Freitexte |
+| Erinnerungen | Ein Klick (mit Bestätigung) schreibt allen, die noch nicht abgesendet haben |
 | Abhängigkeiten zwischen Fragen | `showIf`, z. B. Fragen zu Lehrgängen nur für Personen, die Lehrgänge besucht haben |
 | Freitext zu jeder Kategorie | Automatisch am Ende jeder Kategorie. Jede Auswahlfrage hat ein optionales Kommentarfeld |
 | Hinweis bei negativen Antworten | Bei „schlecht“ oder „Nein“ öffnet sich das Kommentarfeld mit der Frage „Was läuft nicht gut?“ |
@@ -41,7 +41,7 @@ Ziele:
 3. **Keine Klartext-Links.** Der Link-Token wird aus `app_secret` abgeleitet (HMAC). In der Datenbank steht nur sein SHA-256-Hash.
 4. **Auswertung erst nach dem Ende.** Solange die Umfrage läuft, zeigt die Adminoberfläche nur die Beteiligung. So kann niemand die Auswertung vor und nach der Teilnahme einer bestimmten Person vergleichen.
 5. **Mindestgruppengröße (k = 5).** Gefilterte Auswertungen erscheinen nur, wenn die Gruppe **und** alle übrigen Antworten jeweils mindestens 5 umfassen. Pro Ansicht gibt es nur einen Filter, damit kleine Gruppen nicht durch den Vergleich von Ansichten herausgerechnet werden können. Das Geschlecht ist bewusst kein Filter.
-6. **Freitexte sind sortiert**, nicht in Speicherreihenfolge. So lassen sich die Texte einer Person nicht über mehrere Fragen hinweg zusammensetzen.
+6. **Freitexte sind sortiert**, nicht in Speicherreihenfolge. So lassen sich die Texte einer Person nicht über mehrere Fragen hinweg zusammensetzen. Gefilterte Ansichten zeigen **keine** Freitexte und Kommentare: Taucht ein Text unter zwei Filtern auf (z. B. Alter und Qualifikation), wäre seine Autorin oder sein Autor sonst auf die Schnittmenge eingegrenzt.
 7. **Datensparsamkeit.** Die Anwendung speichert keine IP-Adressen und setzt `Referrer-Policy: no-referrer`. Beim Beenden der Umfrage werden alle E-Mail-Adressen gelöscht.
 
 **Verbleibendes Risiko:** Wer während der Umfrage Zugriff auf Webspace **und** Datenbank hat, könnte Entwürfe vor dem Absenden lesen. Den Webspace sollte deshalb möglichst jemand betreuen, der **nicht** zur Einheitsführung gehört. Der Webserver des Hosters protokolliert in der Regel IP-Adressen und aufgerufene URLs. Diese Logs enthalten aber keine Antworten. Freitexte können durch ihren Inhalt Rückschlüsse zulassen, darauf weist die Umfrage hin.
@@ -89,7 +89,7 @@ Angewendete Best Practices für Mitgliederbefragungen:
 2. `public/config.example.php` nach `public/config.php` kopieren und ausfüllen:
    - `db_dsn`, `db_user`, `db_pass`: Zugangsdaten der Datenbank
    - `app_secret`: mindestens 32 zufällige Zeichen, z. B. von `php -r "echo bin2hex(random_bytes(24));"` oder einem Passwortgenerator. **Darf während einer laufenden Umfrage nicht geändert werden**, sonst werden alle Links und Entwürfe ungültig.
-   - `admin_password`: Passwort für die Adminoberfläche, mindestens 8 Zeichen
+   - `admin_password`: Passwort für die Adminoberfläche, mindestens 12 Zeichen
    - `base_url`: Adresse des Ordners, z. B. `https://www.feuerwehr-example.de/umfrage`
    - `mail_from`: Absender, am besten ein Postfach **der eigenen Domain beim selben Hoster**. Das verringert die Gefahr, dass Mails im Spam landen.
 3. Den **Inhalt** von `public/` per FTP in einen Ordner auf dem Webspace hochladen, z. B. `/umfrage`.
@@ -104,9 +104,9 @@ Angewendete Best Practices für Mitgliederbefragungen:
 2. **Importieren:** In `admin.php` die Datei `dahlbruch-2026.json` auswählen und auf „Importieren“ klicken. Solange die Umfrage läuft, übernimmt ein erneuter Import Textänderungen.
 3. **Einladen:** Die E-Mail-Adressen einfügen, eine pro Zeile oder durch Komma getrennt, und auf „Einladungen senden“ klicken.
 4. **Erneut einladen:** Hat jemand die Mail nicht bekommen oder gelöscht, in der Liste auf „Erneut einladen“ klicken.
-5. **Erinnern:** Nach ca. 1 und 2 Wochen auf „Erinnerung an … Personen senden“ klicken.
+5. **Erinnern:** Nach ca. 1 und 2 Wochen das Häkchen setzen und auf „Erinnerung an … Personen senden“ klicken. Ein versehentlicher Doppelklick verschickt nichts doppelt.
 6. **Beenden:** Nach ca. 3–4 Wochen die Umfrage beenden. Danach sind keine Antworten mehr möglich, alle E-Mail-Adressen werden gelöscht und die Auswertung wird freigeschaltet.
-7. **Auswerten:** Die Ergebnisse vorstellen und Maßnahmen festlegen.
+7. **Auswerten:** Die Ergebnisse vorstellen und Maßnahmen festlegen. Mittelwerte gelten für Stufe 1 = beste Antwort bis 5 = schlechteste Antwort. „Als CSV herunterladen“ exportiert die Zahlen (ohne Freitexte) für Excel, z. B. für den Vergleich mit dem Vorjahr.
 
 ## Neue Umfrage erstellen
 
@@ -156,13 +156,13 @@ Die Datenbank lässt sich über `DB_DSN`, `DB_USER` und `DB_PASS` anpassen, z. B
 FFF_CONFIG="$PWD/tests/config.php" php -S 127.0.0.1:8123 -t public
 ```
 
-Danach `http://127.0.0.1:8123/admin.php` öffnen, das Passwort ist `geheim123`. Die E-Mails landen in `fffeedback-test-mail.log` im Temp-Ordner.
+Danach `http://127.0.0.1:8123/admin.php` öffnen, das Passwort ist `geheim-lokal`. Die E-Mails landen in `fffeedback-test-mail.log` im Temp-Ordner.
 
-**Mit Docker Compose:** `docker compose up` startet MySQL und den PHP-Server (Port 8123) ohne lokale Installation. Beim Start importiert `tools/seed-local.php` automatisch die Beispielumfrage und lädt `test@example.org` ein; der fertige Umfrage-Link und die Admin-Zugangsdaten stehen danach im Log der Zeile `web`. Admin: `http://127.0.0.1:8123/admin.php` (Passwort `geheim123`). Mit `docker compose down -v` wird die Datenbank wieder geleert.
+**Mit Docker Compose:** `docker compose up` startet MySQL und den PHP-Server (Port 8123) ohne lokale Installation. Beim Start importiert `tools/seed-local.php` automatisch die Beispielumfrage und lädt `test@example.org` ein; der fertige Umfrage-Link und die Admin-Zugangsdaten stehen danach im Log der Zeile `web`. Admin: `http://127.0.0.1:8123/admin.php` (Passwort `geheim-lokal`). Mit `docker compose down -v` wird die Datenbank wieder geleert.
 
-GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push und Pull Request alle Tests aus: mit PHP 8.1 + MariaDB 10.6 und mit PHP 8.4 + MySQL 8.4. Außerdem prüft der Workflow, ob der Fragenkatalog aktuell ist.
+GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push auf `main` und jedem Pull Request alle Tests aus: mit PHP 8.1 + MariaDB 10.6 und mit PHP 8.4 + MySQL 8.4. Außerdem prüft der Workflow, ob der Fragenkatalog aktuell ist.
 
-Bei jedem Pull Request, der `public/` betrifft, erzeugt `.github/workflows/ui-screenshots.yml` per Playwright Screenshots der Umfrage- und Admin-Seiten (`tests/ui-screenshots.mjs`). `.github/workflows/ui-screenshot-comment.yml` bettet sie anschließend als Kommentar in den Pull Request ein.
+Bei jedem Pull Request, der `public/` betrifft, erzeugt `.github/workflows/ui-screenshots.yml` per Playwright Screenshots der Umfrage- und Admin-Seiten (`tests/ui-screenshots.mjs`). `.github/workflows/ui-screenshot-comment.yml` bettet sie anschließend als Kommentar in den Pull Request ein. Die Bilder liegen im Branch `ui-screenshots-pr-<Nummer>`, der beim Schließen des Pull Requests gelöscht wird (`ui-screenshot-cleanup.yml`).
 
 ## Lizenz
 

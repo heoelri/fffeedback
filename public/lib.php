@@ -214,6 +214,7 @@ function validate_survey(array $survey): array
 
 // One filter at a time, and both the group and "everyone else" must have >= MIN_GROUP answers,
 // otherwise small groups could be recovered by comparing views (differencing).
+// Filtered views contain no texts/notes: a text seen under two filters would pin its author to the intersection.
 function aggregate(array $survey, array $responses, ?array $filter = null): array
 {
     $active = $filter && in_array($filter['q'] ?? null, $survey['reportFilters'] ?? [], true);
@@ -223,11 +224,12 @@ function aggregate(array $survey, array $responses, ?array $filter = null): arra
 
     $result = [];
     foreach (questions($survey) as $q) {
+        if ($active && $q['type'] === 'text') continue;
         $values = [];
         $notes = [];
         foreach ($rows as $r) {
             if (array_key_exists($q['id'], $r['answers'])) $values[] = $r['answers'][$q['id']];
-            if (!empty($r['notes'][$q['id']])) $notes[] = $r['notes'][$q['id']];
+            if (!$active && !empty($r['notes'][$q['id']])) $notes[] = $r['notes'][$q['id']];
         }
         // Sorted (not in DB order) so texts of one person cannot be lined up across questions.
         sort($notes);
@@ -246,7 +248,7 @@ function aggregate(array $survey, array $responses, ?array $filter = null): arra
             'notes' => $notes,
         ];
     }
-    return ['n' => count($rows), 'questions' => $result];
+    return ['n' => count($rows), 'filtered' => $active, 'questions' => $result];
 }
 
 // ---- Mail & invitations ----

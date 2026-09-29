@@ -38,9 +38,13 @@ if (!$inv) reply(404, ['error' => 'Dieser Link ist ungültig.']);
 $survey = json_decode($inv['definition'], true);
 
 if ($action === 'load') {
+    try {
+        $draft = $inv['draft'] ? state_json(unseal($inv['draft'])) : 'null';
+    } catch (RuntimeException) {
+        $draft = 'null'; // unreadable (e.g. app_secret changed): start over instead of failing
+    }
     echo '{"survey":' . $inv['definition'] . ',"closed":' . json_encode((bool) $inv['closed'])
-        . ',"submitted":' . json_encode((bool) $inv['submitted'])
-        . ',"draft":' . ($inv['draft'] ? state_json(unseal($inv['draft'])) : 'null') . '}';
+        . ',"submitted":' . json_encode((bool) $inv['submitted']) . ',"draft":' . $draft . '}';
     exit;
 }
 

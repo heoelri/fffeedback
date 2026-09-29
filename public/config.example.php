@@ -10,7 +10,7 @@ return [
     // e.g. generate with: php -r "echo bin2hex(random_bytes(24));"
     'app_secret' => '',
 
-    // Password for admin.php (at least 8 characters)
+    // Password for admin.php (at least 12 characters)
     'admin_password' => '',
 
     // Address of this folder on the web, used in the invitation links

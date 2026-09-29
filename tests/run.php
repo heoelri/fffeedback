@@ -99,6 +99,9 @@ check('aggregate: Zählung, Mittelwert, Mindestgruppengröße', function () use 
     eq(array_column($q['counts'], 'count'), [1, 1, 1, 1, 6, 1]);
     eq(current(array_filter($all['questions'], fn($x) => $x['q']['id'] === 'allg_gut'))['texts'], ['a', 'b'], 'sortiert');
     eq(aggregate($survey, $rows, ['q' => 'alter', 'v' => '18–29'])['n'], 5);
+    $filtered = aggregate($survey, [...$rows, ['answers' => ['alter' => '30–45', 'kameradschaft' => 1], 'notes' => ['kameradschaft' => 'n']]], ['q' => 'alter', 'v' => '30–45']);
+    ok($filtered['filtered'] && !array_filter($filtered['questions'], fn($x) => $x['q']['type'] === 'text' || $x['notes']), 'keine Texte/Kommentare im Filter');
+    ok(!$all['filtered'], 'ungefiltert');
     ok(aggregate($survey, $rows, ['q' => 'alter', 'v' => '46 und älter'])['suppressed'] ?? false, 'Gruppe < 5');
     ok(aggregate($survey, array_slice($rows, 0, 9), ['q' => 'alter', 'v' => '18–29'])['suppressed'] ?? false, 'Rest < 5');
     ok(aggregate($survey, array_slice($rows, 0, 4))['suppressed'] ?? false, 'gesamt < 5');
@@ -160,7 +163,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         ok(str_contains($admin(), 'type="password"'), 'Login-Formular');
         eq($http('POST', 'admin.php', ['password' => 'falsch'])[0], 200);
         ok(!str_contains($admin(), 'Umfragen</h1>'), 'falsches Passwort');
-        $http('POST', 'admin.php', ['password' => 'geheim123']);
+        $http('POST', 'admin.php', ['password' => 'geheim-lokal']);
         ok(str_contains($admin(), 'dahlbruch-2026.json'), 'eingeloggt, Datei zum Import angeboten');
         eq($http('POST', 'admin.php', ['action' => 'import', 'file' => 'dahlbruch-2026.json', 'csrf' => 'falsch'])[0], 403, 'CSRF');
 
@@ -196,6 +199,10 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         ok(str_contains($api($tokens[1], 'load')[1], '"draft":{"answers":{},"notes":{}}'), 'leere Objekte bleiben {}');
         $raw = q('SELECT draft, started FROM invitations WHERE email = ?', ['p0@example.org'])->fetch();
         ok($raw['started'] && !str_contains(base64_decode($raw['draft']), 'Entwurfstext'), 'Entwurf verschlüsselt');
+        q('UPDATE invitations SET draft = ? WHERE email = ?', [base64_encode(random_bytes(40)), 'p6@example.org']);
+        [$status, $body] = $api($tokens[6], 'load');
+        eq([$status, json_decode($body, true)['draft']], [200, null], 'unlesbarer Entwurf wird verworfen');
+        q('UPDATE invitations SET draft = NULL WHERE email = ?', ['p6@example.org']);
 
         for ($i = 0; $i < 6; $i++) {
             eq($api($tokens[$i], 'submit', ['answers' => ['alter' => $i < 3 ? '18–29' : '30–45', 'gesamt_bewertung' => 4, 'allg_gut' => "Text $i"]])[0], 204);
@@ -225,9 +232,15 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         ok(str_contains($admin("?s=$slug"), 'konnte nicht gesendet werden'), 'kein erneutes Einladen nach Absenden');
         eq(count($mails()), 8);
 
-        // Remind only the one who has not submitted
-        $post(['action' => 'remind', 's' => $slug]);
-        ok(str_contains($admin("?s=$slug"), '1 Erinnerungen versendet'));
+        // Remind only the one who has not submitted; needs confirmation, a double submit sends nothing
+        preg_match('/name="nonce" value="([^"]+)"/', $admin("?s=$slug"), $m);
+        $post(['action' => 'remind', 's' => $slug, 'nonce' => $m[1]]);
+        ok(str_contains($admin("?s=$slug"), 'Bitte das Erinnern bestätigen'));
+        preg_match('/name="nonce" value="([^"]+)"/', $admin("?s=$slug"), $m);
+        $post(['action' => 'remind', 's' => $slug, 'nonce' => $m[1], 'confirm' => '1']);
+        $post(['action' => 'remind', 's' => $slug, 'nonce' => $m[1], 'confirm' => '1']);
+        ok(str_contains($admin("?s=$slug"), 'Keine Erinnerungen versendet'), 'doppelt abgeschickt');
+        eq(count($mails()), 9, 'nur eine Erinnerung');
         ok(str_starts_with($last()['subject'], 'Erinnerung'), 'Erinnerungstext');
 
         // Close
@@ -236,6 +249,9 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         $post(['action' => 'close', 's' => $slug, 'confirm' => '1']);
         $html = $admin("?s=$slug");
         ok(str_contains($html, '<b>6 Antworten</b>') && str_contains($html, 'Text 5') && str_contains($html, 'beendet'), 'Auswertung nach Ende');
+        ok(str_contains($html, 'Ø 4,0 (1 = sehr gut … 5 = sehr schlecht)'), 'Mittelwert mit Skalenrichtung');
+        [, $csv, $headers] = $http('GET', "admin.php?s=$slug&csv=1");
+        ok(str_contains($headers, 'text/csv') && str_contains($csv, 'Alle;Gesamteindruck;gesamt_bewertung;') && !str_contains($csv, 'Text 5'), 'CSV-Export ohne Freitexte');
         ok(!str_contains($html, 'example.org'), 'keine E-Mail-Adressen mehr');
         ok(str_contains($admin('?' . http_build_query(['s' => $slug, 'q' => 'alter', 'v' => '18–29'])), 'Zu wenige Antworten'), 'Mindestgruppengröße');
         eq((int) q("SELECT COUNT(*) FROM invitations WHERE email LIKE '%@%'")->fetchColumn(), 0);

@@ -53,11 +53,14 @@ const STATS = 'SELECT s.id, s.slug, s.definition, s.closed, COUNT(i.id) AS invit
 // ---- Login ----
 
 $password = (string) (config()['admin_password'] ?? '');
-if (strlen($password) < 8) page('Fehler', '<p class="warn">Bitte in config.php ein admin_password mit mindestens 8 Zeichen setzen.</p>');
+if (strlen($password) < 12) page('Fehler', '<p class="warn">Bitte in config.php ein admin_password mit mindestens 12 Zeichen setzen.</p>');
 
 if (empty($_SESSION['admin'])) {
     $error = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Serialises all login attempts, so the delay below also limits parallel guessing (released on exit).
+        $lock = @fopen(sys_get_temp_dir() . '/fffeedback-login-' . md5(__DIR__) . '.lock', 'c');
+        if ($lock) flock($lock, LOCK_EX);
         if (hash_equals(hash('sha256', $password), hash('sha256', (string) ($_POST['password'] ?? '')))) {
             session_regenerate_id(true);
             $_SESSION['admin'] = true;
@@ -123,6 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'reinvite':
             redirect($back, reinvite($survey, (int) ($_POST['id'] ?? 0)) ? 'Einladung erneut gesendet.' : 'Einladung konnte nicht gesendet werden.');
         case 'remind':
+            // One-time nonce: a double click (or an old tab) must not send all reminders twice.
+            $nonce = $_SESSION['remind'] ?? '';
+            unset($_SESSION['remind']);
+            if (empty($_POST['confirm'])) redirect($back, 'Bitte das Erinnern bestätigen.');
+            if ($nonce === '' || !hash_equals($nonce, (string) ($_POST['nonce'] ?? ''))) redirect($back, 'Keine Erinnerungen versendet (doppelt abgeschickt oder Seite veraltet).');
             redirect($back, remind($survey) . ' Erinnerungen versendet.');
         case 'close':
             if (empty($_POST['confirm'])) redirect($back, 'Bitte das Beenden bestätigen.');
@@ -164,7 +172,8 @@ if (!$s['closed']) {
     $html .= '<section class="card"><h2>Einladen</h2><p class="muted">E-Mail-Adressen, eine pro Zeile (oder durch Komma getrennt). Bereits Eingeladene werden übersprungen.</p>'
         . action_form($slug, 'invite', 'Einladungen senden', '<textarea name="emails" rows="6" required aria-label="E-Mail-Adressen"></textarea>')
         . '<h2>Erinnern</h2><p class="muted">Schreibt allen, die noch nicht abgesendet haben.</p>'
-        . action_form($slug, 'remind', "Erinnerung an $open Personen senden")
+        . action_form($slug, 'remind', "Erinnerung an $open Personen senden", '<input type="hidden" name="nonce" value="' . ($_SESSION['remind'] = bin2hex(random_bytes(8))) . '">'
+            . '<p><label><input type="checkbox" name="confirm" value="1" required> Ja, jetzt erinnern</label></p>')
         . '<h2>Beenden</h2><p class="muted">Danach sind keine Antworten mehr möglich, die E-Mail-Adressen werden gelöscht und die Auswertung wird freigeschaltet.</p>'
         . action_form($slug, 'close', 'Umfrage beenden', '<p><label><input type="checkbox" name="confirm" value="1" required> Ja, Umfrage endgültig beenden</label></p>', 'secondary')
         . '</section>';
@@ -202,15 +211,35 @@ if (!empty($r['suppressed'])) {
     page($def['title'], $html . '<p class="warn">Zu wenige Antworten für diese Auswahl (Gruppe oder Rest unter ' . MIN_GROUP . '). Zum Schutz der Anonymität wird nichts angezeigt.</p>');
 }
 
+if (isset($_GET['csv'])) {
+    header('Content-Type: text/csv; charset=UTF-8');
+    header("Content-Disposition: attachment; filename=\"{$s['slug']}.csv\"");
+    $titles = array_column($def['sections'], 'title', 'id');
+    $scope = $r['filtered'] ? "{$filter['q']} = {$filter['v']}" : 'Alle';
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // so Excel detects UTF-8
+    $csv = fn(array $row) => fputcsv($out, $row, ';', '"', '');
+    $csv(['Auswahl', 'Kategorie', 'Frage-ID', 'Frage', 'Antworten', 'Mittelwert', 'Antwort', 'Anzahl']);
+    foreach ($r['questions'] as $x) {
+        if (!isset($x['counts'])) continue; // free texts are only in the HTML report
+        $mean = $x['mean'] === null ? '' : number_format($x['mean'], 2, ',', '');
+        foreach ($x['counts'] as $c) $csv([$scope, $titles[$x['q']['section']], $x['q']['id'], $x['q']['text'], $x['answered'], $mean, $c['label'], $c['count']]);
+    }
+    exit;
+}
+
+$self = $base . ($r['filtered'] ? '&amp;q=' . urlencode($filter['q']) . '&amp;v=' . urlencode($filter['v']) : '');
 $list = fn($items) => $items ? '<ul class="texts">' . implode('', array_map(fn($t) => '<li>' . esc($t) . '</li>', $items)) . '</ul>' : '';
-$html .= "<p><b>{$r['n']} Antworten</b> in dieser Auswahl</p>";
+$html .= "<p><b>{$r['n']} Antworten</b> in dieser Auswahl · <a href=\"$self&amp;csv=1\">Als CSV herunterladen</a></p>";
+if ($r['filtered']) $html .= '<p class="muted">Freitexte und Kommentare stehen nur unter „Alle Antworten“. Sonst ließen sie sich über mehrere Filter einer Person zuordnen.</p>';
 $section = null;
 foreach ($r['questions'] as $x) {
     if ($x['q']['section'] !== $section) {
         $section = $x['q']['section'];
         $html .= '<h2>' . esc(current(array_filter($def['sections'], fn($sec) => $sec['id'] === $section))['title']) . '</h2>';
     }
-    $mean = isset($x['mean']) ? ' · Ø ' . number_format($x['mean'], 1, ',', '') . ' von 5' : '';
+    $scale = SCALES[$x['q']['scale'] ?? 'rate'];
+    $mean = isset($x['mean']) ? ' · Ø ' . number_format($x['mean'], 1, ',', '') . ' (1 = ' . $scale[0] . ' … 5 = ' . $scale[4] . ')' : '';
     $html .= '<h3>' . esc($x['q']['text']) . "</h3><p class=\"muted\">{$x['answered']} Antworten$mean</p>";
     if (isset($x['texts'])) {
         $html .= $list($x['texts']);

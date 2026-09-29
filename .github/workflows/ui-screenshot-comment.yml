@@ -53,11 +53,12 @@ jobs:
           set -euo pipefail
           mapfile -t files < <(find screenshots -maxdepth 1 -type f -name '*.png' | sort)
           expected_files=(
-            01-umfrage.png
+            01-umfrage-fragen.png
+            01-umfrage-start.png
+            02-admin-auswertung.png
             02-admin-login.png
             02-admin-uebersicht.png
             02-admin-umfrage.png
-            02-admin-auswertung.png
           )
           test "${#files[@]}" -eq "${#expected_files[@]}"
           for index in "${!expected_files[@]}"; do
