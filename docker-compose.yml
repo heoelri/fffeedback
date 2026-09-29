@@ -26,4 +26,5 @@ services:
       - .:/app
     command: >
       sh -c "docker-php-ext-install pdo_mysql opcache >/dev/null &&
+             php tools/seed-local.php &&
              php -S 0.0.0.0:8123 -t public"

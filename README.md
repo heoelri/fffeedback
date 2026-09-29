@@ -158,7 +158,7 @@ FFF_CONFIG="$PWD/tests/config.php" php -S 127.0.0.1:8123 -t public
 
 Danach `http://127.0.0.1:8123/admin.php` öffnen, das Passwort ist `geheim123`. Die E-Mails landen in `fffeedback-test-mail.log` im Temp-Ordner.
 
-**Mit Docker Compose:** `docker compose up` startet MySQL und den PHP-Server (Port 8123) ohne lokale Installation. Danach wie oben `http://127.0.0.1:8123/admin.php` öffnen (Passwort `geheim123`). Mit `docker compose down -v` wird die Datenbank wieder geleert.
+**Mit Docker Compose:** `docker compose up` startet MySQL und den PHP-Server (Port 8123) ohne lokale Installation. Beim Start importiert `tools/seed-local.php` automatisch die Beispielumfrage und lädt `test@example.org` ein; der fertige Umfrage-Link und die Admin-Zugangsdaten stehen danach im Log der Zeile `web`. Admin: `http://127.0.0.1:8123/admin.php` (Passwort `geheim123`). Mit `docker compose down -v` wird die Datenbank wieder geleert.
 
 GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push und Pull Request alle Tests aus: mit PHP 8.1 + MariaDB 10.6 und mit PHP 8.4 + MySQL 8.4. Außerdem prüft der Workflow, ob der Fragenkatalog aktuell ist.
 
