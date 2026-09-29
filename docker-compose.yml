@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: fff_test
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      retries: 10
+
+  web:
+    image: php:8.1-cli
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /app
+    environment:
+      FFF_CONFIG: /app/tests/config.php
+      DB_DSN: "mysql:host=db;port=3306;dbname=fff_test;charset=utf8mb4"
+    ports:
+      - "8123:8123"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "docker-php-ext-install pdo_mysql opcache >/dev/null &&
+             php -S 0.0.0.0:8123 -t public"
