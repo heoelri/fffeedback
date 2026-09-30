@@ -50,13 +50,14 @@ Ziele:
 
 Bewusst minimal, damit das Tool auf günstigem Webspace läuft und auch Ehrenamtliche es warten können:
 
-- **Server:** PHP ≥ 8.1 mit `pdo_mysql` und `openssl`, dazu MySQL ≥ 5.7 oder MariaDB ≥ 10.3. Es gibt keine Abhängigkeiten, kein Composer, keinen Build-Schritt, kein `.htaccess`/mod_rewrite und keinen Cronjob. Die Tabellen legt die Anwendung beim ersten Aufruf von `admin.php` selbst an.
+- **Server:** PHP ≥ 8.1 mit `pdo_mysql` und `openssl`, dazu MySQL ≥ 5.7 oder MariaDB ≥ 10.3. Es gibt keine Abhängigkeiten, kein Composer, keinen Build-Schritt, kein mod_rewrite und keinen Cronjob. Die mitgelieferte `.htaccess` setzt nur `DirectoryIndex index.php` für ältere Links ohne `index.php`; die Links in den Einladungen zeigen immer direkt auf `index.php`. Die Tabellen legt die Anwendung beim ersten Aufruf von `admin.php` selbst an.
 - **E-Mail:** PHPs `mail()`, sofern der Hoster es aktiviert hat (bei den meisten Webspaces der Fall), oder optional SMTP mit STARTTLS (ohne Bibliothek).
 - **Frontend:** HTML, CSS und Vanilla-JS. Der Server prüft alle Eingaben selbst und verwirft ungültige Werte sowie Antworten auf ausgeblendete Fragen. Tests stellen sicher, dass `logic.js` (Browser) und `lib.php` (Server) die gleichen Regeln anwenden.
 
 ```
 public/                   ← dieser Ordner kommt auf den Webspace
-  index.php               Umfrage-Seite und JSON-API (?t=TOKEN)
+  index.php               Umfrage-Seite und JSON-API (index.php?t=TOKEN)
+  .htaccess               nur DirectoryIndex (Apache), optional
   admin.php               Adminoberfläche: importieren, einladen, erinnern, beenden, auswerten
   lib.php                 Datenbank, Verschlüsselung, Regeln, Auswertung, E-Mail
   app.js, logic.js, style.css

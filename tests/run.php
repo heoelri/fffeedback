@@ -256,7 +256,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
             $tokens[$m['to']] = $t[1];
         }
         $tokens = array_values(array_map(fn($e) => $tokens[$e], $emails));
-        ok(str_contains($mails()[0]['text'], 'http://127.0.0.1:8124/umfrage/?t='), 'Link in der Mail');
+        ok(str_contains($mails()[0]['text'], 'http://127.0.0.1:8124/umfrage/index.php?t='), 'Link in der Mail, index.php explizit (nicht jeder Server nutzt es als Startseite)');
 
         // Survey page & API
         [$status, $html, $headers] = $http('GET', '?t=' . $tokens[0]);
