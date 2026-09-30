@@ -39,6 +39,7 @@ jobs:
         id: current
         if: github.event_name == 'workflow_run'
         run: |
+          set -o pipefail
           head=$(git ls-remote origin refs/heads/main | cut -f1)
           if [ "$head" = "$SHA" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
           else echo "::notice::$SHA ist nicht mehr der aktuelle Stand von main ($head) – übersprungen."; fi
@@ -52,7 +53,7 @@ jobs:
           esac
           sudo apt-get install -y -qq lftp
 
-      # config.php is not in the repository and never touched: it lives only on the server.
+      # config.php lives only on the server: excluded explicitly, never uploaded or overwritten.
       # No --delete, so files outside the repository are never removed.
       - name: Upload public/
         if: github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true'
@@ -61,7 +62,7 @@ jobs:
         run: |
           lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm no; set net:max-retries 2;
             open --env-password -u '$DEPLOY_USER' '$DEPLOY_URL';
-            mirror --reverse --verbose public/ ."
+            mirror --reverse --verbose --exclude-glob config.php public/ ."
 
       - name: Check site
         if: vars.SITE_URL != '' && (github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true')
