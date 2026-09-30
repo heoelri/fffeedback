@@ -405,7 +405,7 @@ function smtp_send(#[\SensitiveParameter] array $s, string $to, string $subject,
 function send_link(array $survey, string $template, string $email): bool
 {
     $def = json_decode($survey['definition'], true);
-    $link = rtrim(config()['base_url'], '/') . '/?t=' . token_for($survey['slug'], $email);
+    $link = rtrim(config()['base_url'], '/') . '/index.php?t=' . token_for($survey['slug'], $email);
     $fill = fn($s) => strtr($s, ['{title}' => $def['title'], '{link}' => $link]);
     return send_mail($email, $fill($def[$template]['subject']), $fill($def[$template]['text']));
 }

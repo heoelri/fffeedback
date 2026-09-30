@@ -1,0 +1,2 @@
+# Only needed for links without index.php (e.g. already sent invitations). Everything else works without it.
+DirectoryIndex index.php
