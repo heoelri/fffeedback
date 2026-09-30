@@ -8,5 +8,6 @@ return [
     'admin_password' => 'geheim-lokal',
     'base_url' => getenv('FFF_BASE_URL') ?: 'http://127.0.0.1:8123',
     'mail_from' => 'Test <test@example.org>',
-    'mail_log' => sys_get_temp_dir() . '/fffeedback-test-mail.log',
+    // The end-to-end test also runs a server without mail_log to exercise the real mail path.
+    'mail_log' => getenv('FFF_NO_MAIL_LOG') ? '' : sys_get_temp_dir() . '/fffeedback-test-mail.log',
 ];

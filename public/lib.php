@@ -263,8 +263,8 @@ function send_mail(string $to, string $subject, string $text): bool
     $envelope = preg_match('/<([^>]+)>/', $c['mail_from'], $m) ? $m[1] : $c['mail_from'];
     // Encode a non-ASCII display name (e.g. "Einheitsführung") as RFC 2047.
     $from = preg_match('/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/', $c['mail_from'], $m) && preg_match('/[^\x20-\x7e]/', $m[1])
-        ? '=?UTF-8?B?' . base64_encode($m[1]) . "?= <$m[2]>" : $c['mail_from'];
-    $subject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+        ? mime_header($m[1]) . " <$m[2]>" : $c['mail_from'];
+    $subject = mime_header($subject);
     if (trim((string) ($c['smtp_host'] ?? '')) !== '') {
         return smtp_send(smtp_settings($c, $envelope), $to, $subject, $text, $from);
     }
@@ -272,6 +272,23 @@ function send_mail(string $to, string $subject, string $text): bool
     if (!function_exists('mail')) throw new RuntimeException('Die PHP-Funktion mail() ist beim Hoster deaktiviert. Bitte in config.php SMTP einrichten (smtp_host usw.) oder im Kundenmenü des Hosters den Mailversand für PHP aktivieren.');
     $params = filter_var($envelope, FILTER_VALIDATE_EMAIL) ? "-f$envelope" : '';
     return mail($to, $subject, $text, $headers, $params);
+}
+
+// RFC 2047 encoded-words may be at most 75 characters: split into UTF-8-safe chunks and fold the header.
+function mime_header(string $text): string
+{
+    $words = [];
+    $chunk = '';
+    preg_match_all('/./us', $text, $chars);
+    foreach ($chars[0] as $char) {
+        if (strlen($chunk . $char) > 45) { // 45 bytes → 60 Base64 characters + 12 for "=?UTF-8?B??="
+            $words[] = $chunk;
+            $chunk = '';
+        }
+        $chunk .= $char;
+    }
+    $words[] = $chunk;
+    return implode("\r\n ", array_map(fn($w) => '=?UTF-8?B?' . base64_encode($w) . '?=', $words));
 }
 
 function smtp_settings(array $c, string $envelope): array
@@ -317,35 +334,68 @@ function smtp_command($socket, string $command, int $expected): bool
     return smtp_write($socket, "$command\r\n") && smtp_reply($socket, $expected);
 }
 
-function smtp_send(array $s, string $to, string $subject, string $text, string $from): bool
+// Opens an authenticated session. Credentials are sent only after certificate-verified STARTTLS.
+function smtp_connect(array $s)
 {
     $ssl = ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $s['host']];
     if ($s['ca_file'] !== '') $ssl['cafile'] = $s['ca_file'];
     $socket = @stream_socket_client("tcp://{$s['host']}:{$s['port']}", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => $ssl]));
-    if ($socket === false) return false;
+    if ($socket === false) throw new RuntimeException("SMTP-Server {$s['host']}:{$s['port']} nicht erreichbar ($errstr).");
     stream_set_timeout($socket, 10);
-    // Credentials are sent only after certificate-verified STARTTLS.
+    $step = 'Verbindung';
     $ok = smtp_reply($socket, 220)
         && smtp_command($socket, 'EHLO localhost', 250)
-        && smtp_command($socket, 'STARTTLS', 220)
+        && ($step = 'STARTTLS') && smtp_command($socket, 'STARTTLS', 220)
         && @stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT) === true
         && smtp_command($socket, 'EHLO localhost', 250)
-        && smtp_command($socket, 'AUTH LOGIN', 334)
+        && ($step = 'Anmeldung') && smtp_command($socket, 'AUTH LOGIN', 334)
         && smtp_command($socket, base64_encode($s['username']), 334)
-        && smtp_command($socket, base64_encode($s['password']), 235)
-        && smtp_command($socket, "MAIL FROM:<{$s['envelope']}>", 250)
-        && smtp_command($socket, "RCPT TO:<$to>", 250)
-        && smtp_command($socket, 'DATA', 354);
-    if ($ok) {
-        // SMTP ends DATA on a lone dot, so leading dots must be escaped.
-        $body = str_replace("\n", "\r\n", preg_replace('/^\./m', '..', str_replace(["\r\n", "\r"], "\n", $text)));
-        $headers = 'Date: ' . gmdate(DATE_RFC2822) . "\r\nFrom: $from\r\nTo: $to\r\nSubject: $subject\r\n"
-            . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
-        $ok = smtp_write($socket, "$headers\r\n$body\r\n.\r\n") && smtp_reply($socket, 250);
+        && smtp_command($socket, base64_encode($s['password']), 235);
+    if (!$ok) {
+        fclose($socket);
+        throw new RuntimeException("SMTP-Fehler bei {$s['host']} ($step). Bitte smtp_host, smtp_port, smtp_username und smtp_password prüfen.");
     }
-    if ($ok) smtp_command($socket, 'QUIT', 221);
-    fclose($socket);
-    return $ok;
+    return $socket;
+}
+
+// One authenticated session is reused for all mails of a request (invite/remind send many).
+// Returns false if the server rejects a single recipient; throws on transport or login failures so that a batch stops
+// instead of waiting for a timeout per recipient.
+function smtp_send(array $s, string $to, string $subject, string $text, string $from): bool
+{
+    static $sessions = [];
+    $key = json_encode($s);
+    $reused = isset($sessions[$key]);
+    if (!$reused) {
+        $sessions[$key] = smtp_connect($s);
+        register_shutdown_function(function () use (&$sessions, $key) {
+            if (!isset($sessions[$key])) return;
+            @smtp_command($sessions[$key], 'QUIT', 221);
+            @fclose($sessions[$key]);
+        });
+    }
+    $socket = $sessions[$key];
+    if (!smtp_command($socket, "MAIL FROM:<{$s['envelope']}>", 250)) {
+        @fclose($socket);
+        unset($sessions[$key]);
+        if ($reused) return smtp_send($s, $to, $subject, $text, $from); // the server may have closed an idle session
+        throw new RuntimeException("SMTP-Server {$s['host']} lehnt den Absender {$s['envelope']} ab.");
+    }
+    if (!smtp_command($socket, "RCPT TO:<$to>", 250)) {
+        if (!smtp_command($socket, 'RSET', 250)) { @fclose($socket); unset($sessions[$key]); }
+        return false;
+    }
+    // Quoted-printable keeps the message 7-bit, so the server needs no 8BITMIME. SMTP ends DATA on a lone dot, so
+    // leading dots are escaped.
+    $body = preg_replace('/^\./m', '..', quoted_printable_encode(str_replace(["\r\n", "\r", "\n"], ["\n", "\n", "\r\n"], $text)));
+    $headers = 'Date: ' . gmdate(DATE_RFC2822) . "\r\nFrom: $from\r\nTo: $to\r\nSubject: $subject\r\n"
+        . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n";
+    if (!smtp_command($socket, 'DATA', 354) || !smtp_write($socket, "$headers\r\n$body\r\n.\r\n") || !smtp_reply($socket, 250)) {
+        @fclose($socket);
+        unset($sessions[$key]);
+        throw new RuntimeException("SMTP-Server {$s['host']} hat die Nachricht an $to nicht angenommen.");
+    }
+    return true;
 }
 
 function send_link(array $survey, string $template, string $email): bool

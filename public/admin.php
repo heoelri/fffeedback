@@ -2,12 +2,9 @@
 // Admin: import surveys, invite / re-invite / remind, close, participation stats and report.
 declare(strict_types=1);
 require __DIR__ . '/lib.php';
-security_headers();
-session_name('fffadmin');
-session_set_cookie_params(['httponly' => true, 'samesite' => 'Strict', 'secure' => str_starts_with(config()['base_url'], 'https://')]);
-session_start();
 
 // Instead of a blank 500 page: log the error and show logged-in admins what went wrong.
+// Registered before any startup work (config, session) so that those failures are caught too.
 set_exception_handler(function (Throwable $e): never {
     error_log((string) $e);
     http_response_code(500);
@@ -16,6 +13,11 @@ set_exception_handler(function (Throwable $e): never {
         : 'Fehler: ' . esc($e->getMessage()) . ' (' . esc(basename($e->getFile())) . ':' . $e->getLine() . ')')
         . '</p><p><a href="admin.php">Zurück</a></p>');
 });
+
+security_headers();
+session_name('fffadmin');
+session_set_cookie_params(['httponly' => true, 'samesite' => 'Strict', 'secure' => str_starts_with(config()['base_url'], 'https://')]);
+session_start();
 
 function page(string $title, string $body): never
 {

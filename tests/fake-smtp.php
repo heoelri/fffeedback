@@ -1,6 +1,6 @@
 <?php
 // Minimal SMTP server for tests (same flow as heoelri/ebmanager): requires STARTTLS, then AUTH LOGIN.
-// Usage: php tests/fake-smtp.php CERT KEY PORT LOGFILE [MESSAGES]
+// Usage: php tests/fake-smtp.php CERT KEY PORT LOGFILE [CONNECTIONS]
 declare(strict_types=1);
 
 [, $cert, $key, $port, $logFile] = $argv;
@@ -28,13 +28,23 @@ for ($i = 0; $i < (int) ($argv[5] ?? 1); $i++) {
     expect($client, '/^AUTH LOGIN$/', "334 VXNlcm5hbWU6\r\n");
     $user = base64_decode(expect($client, '/^[A-Za-z0-9+\/=]+$/', "334 UGFzc3dvcmQ6\r\n"));
     $pass = base64_decode(expect($client, '/^[A-Za-z0-9+\/=]+$/', "235 Authenticated\r\n"));
-    $from = expect($client, '/^MAIL FROM:<.+>$/', "250 Sender accepted\r\n");
-    $rcpt = expect($client, '/^RCPT TO:<[^>]+>$/', "250 Recipient accepted\r\n");
-    expect($client, '/^DATA$/', "354 End with a dot\r\n");
-    $message = '';
-    while (($line = fgets($client)) !== false && $line !== ".\r\n") $message .= $line;
-    file_put_contents($logFile, "Auth: $user/$pass\n$from\n$rcpt\n$message---\n", FILE_APPEND);
-    fwrite($client, "250 Queued\r\n");
-    expect($client, '/^QUIT$/', "221 Bye\r\n");
+    file_put_contents($logFile, "Auth: $user/$pass\n", FILE_APPEND);
+    // Any number of messages per session, until QUIT or disconnect. No 8BITMIME: 8-bit data is refused.
+    while (($line = fgets($client)) !== false) {
+        $line = rtrim($line, "\r\n");
+        if ($line === 'QUIT') { fwrite($client, "221 Bye\r\n"); break; }
+        if ($line === 'RSET') { fwrite($client, "250 Reset\r\n"); continue; }
+        if (!preg_match('/^MAIL FROM:<.+>$/', $line)) exit(1);
+        fwrite($client, "250 Sender accepted\r\n");
+        $rcpt = rtrim((string) fgets($client), "\r\n");
+        if (!preg_match('/^RCPT TO:<[^>]+>$/', $rcpt)) exit(1);
+        if (str_contains($rcpt, 'abgelehnt')) { fwrite($client, "550 No such user\r\n"); continue; }
+        fwrite($client, "250 Recipient accepted\r\n");
+        expect($client, '/^DATA$/', "354 End with a dot\r\n");
+        $message = '';
+        while (($data = fgets($client)) !== false && $data !== ".\r\n") $message .= $data;
+        file_put_contents($logFile, "$line\n$rcpt\n$message---\n", FILE_APPEND);
+        fwrite($client, preg_match('/[^\x00-\x7f]/', $message) ? "554 8-bit data not supported\r\n" : "250 Queued\r\n");
+    }
     fclose($client);
 }
