@@ -122,12 +122,13 @@ Ohne Konfiguration wird der Workflow übersprungen. Einrichtung:
    | `DEPLOY_KNOWN_HOSTS` | nur bei `sftp://`, Pflicht: Ausgabe von `ssh-keyscan ssh.example-hoster.de`, also Zeilen der Form `host ssh-ed25519 AAAA…`. Am besten mit dem Fingerabdruck vergleichen, den der Hoster veröffentlicht (`ssh-keygen -lf datei`). Meldet `ssh-keyscan` nur `unsupported KEX method` (älteres OpenSSH unter Windows), stattdessen `docker run --rm alpine sh -c "apk add -q openssh-client && ssh-keyscan ssh.example-hoster.de"` verwenden |
    | `SITE_URL` (optional) | `https://www.feuerwehr-example.de/umfrage`. Danach wird geprüft, ob `admin.php` erreichbar ist |
 
-   Der Pfad in `DEPLOY_URL` ist der Zielordner. Wie er genau heißt, steht in den FTP-Zugangsdaten des Hosters.
+   Der Pfad in `DEPLOY_URL` ist der Zielordner, so wie ihn ein FTP-Programm nach dem Anmelden anzeigt. Beispiel: `sftp://…/umfrage` lädt nach `/umfrage`, das bei Bedarf samt übergeordneter Ordner angelegt wird. Die Anwendung läuft in jedem Unterordner. Wichtig ist nur, dass `base_url` in `config.php` auf genau diesen Ordner zeigt, z. B. `https://www.feuerwehr-example.de/umfrage`, sonst stimmen die Links in den Einladungen nicht.
 
 Gut zu wissen:
 
 - **Verschlüsselung ist Pflicht.** Erlaubt sind nur `sftp://`, `ftp://` (der Workflow erzwingt TLS, also FTPS) und `ftps://`. Andere Angaben brechen ab. Kann der Hoster das nicht, stattdessen `sftp://` verwenden. Bei `sftp://` akzeptiert der Workflow nur den Server-Schlüssel aus `DEPLOY_KNOWN_HOSTS`.
 - **Zielordner genau prüfen.** Gelöscht wird nichts: Dateien, die es im Repository nicht mehr gibt, bleiben auf dem Server und müssen bei Bedarf von Hand entfernt werden. Gleichnamige Dateien werden aber **überschrieben**. Zeigt `DEPLOY_URL` z. B. auf das Hauptverzeichnis der Website, wird dort eine vorhandene `index.php` ersetzt. Deshalb immer einen eigenen, leeren Ordner wie `/umfrage` verwenden.
+- **SFTP-Startordner ≠ Ordner der Domain.** Bei vielen Hostern (z. B. Strato) zeigt die Domain auf einen Unterordner des Webspace. Dann gehört dieser Ordner in den Pfad, z. B. `sftp://…/<domain-ordner>/umfrage`. Welcher Ordner das ist, steht im Kundenmenü bei der Domain (Ziel- bzw. Stammverzeichnis). Liefert der Schritt „Check site“ 404, obwohl der Upload geklappt hat, liegt es fast immer daran.
 - **Deployment während einer laufenden Umfrage ist möglich.** Links und Entwürfe bleiben gültig, weil `config.php` (und damit `app_secret`) unverändert bleibt.
 - **Anonymität:** Wer das Secret `DEPLOY_PASSWORD` verwalten kann, hat Zugriff auf den Webspace. Dafür gilt dasselbe wie im [Anonymitätskonzept](#anonymitätskonzept): Möglichst nicht die Einheitsführung.
 
@@ -183,7 +184,7 @@ node --test 'tests/*.test.mjs'           # Browser-Logik und Gleichheit mit dem 
 node tools/catalog.mjs public/surveys/dahlbruch-2026.json > docs/fragenkatalog.md
 ```
 
-Die Datenbank lässt sich über `DB_DSN`, `DB_USER` und `DB_PASS` anpassen, z. B. `DB_DSN='mysql:host=127.0.0.1;port=13306;dbname=fff_test;charset=utf8mb4'`. Der Datenbankname muss „test“ enthalten, weil die Tests die Tabellen löschen. Ist keine Datenbank erreichbar, wird der Ende-zu-Ende-Test übersprungen. In CI zählt das als Fehler.
+Die Datenbank lässt sich über `DB_DSN`, `DB_USER` und `DB_PASS` anpassen, z. B. `DB_DSN='mysql:host=127.0.0.1;port=13306;dbname=fff_test;charset=utf8mb4'`. Der Datenbankname muss „test“ enthalten, weil die Tests die Tabellen löschen. Der Ende-zu-Ende-Test startet die Anwendung unter `http://127.0.0.1:8124/umfrage/`, also wie auf einem Webspace in einem Unterordner. Ist keine Datenbank erreichbar, wird der Ende-zu-Ende-Test übersprungen. In CI zählt das als Fehler.
 
 **Lokal ausprobieren:**
 
