@@ -7,9 +7,10 @@ services:
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
-      interval: 5s
-      retries: 10
+      # TCP, not the socket: during first-run init MySQL runs a temporary server without networking.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 3s
+      retries: 30
 
   web:
     # Built once and cached, so the MySQL extension is not recompiled on every start.
