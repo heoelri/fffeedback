@@ -370,8 +370,10 @@ function smtp_send(array $s, string $to, string $subject, string $text, string $
         $sessions[$key] = smtp_connect($s);
         register_shutdown_function(function () use (&$sessions, $key) {
             if (!isset($sessions[$key])) return;
-            @smtp_command($sessions[$key], 'QUIT', 221);
-            @fclose($sessions[$key]);
+            $socket = $sessions[$key];
+            unset($sessions[$key]); // a reconnect registers another handler for the same key
+            @smtp_command($socket, 'QUIT', 221);
+            @fclose($socket);
         });
     }
     $socket = $sessions[$key];
@@ -382,8 +384,10 @@ function smtp_send(array $s, string $to, string $subject, string $text, string $
         throw new RuntimeException("SMTP-Server {$s['host']} lehnt den Absender {$s['envelope']} ab.");
     }
     if (!smtp_command($socket, "RCPT TO:<$to>", 250)) {
-        if (!smtp_command($socket, 'RSET', 250)) { @fclose($socket); unset($sessions[$key]); }
-        return false;
+        if (smtp_command($socket, 'RSET', 250)) return false; // only this recipient was rejected
+        @fclose($socket);
+        unset($sessions[$key]);
+        throw new RuntimeException("Verbindung zum SMTP-Server {$s['host']} abgebrochen.");
     }
     // Quoted-printable keeps the message 7-bit, so the server needs no 8BITMIME. SMTP ends DATA on a lone dot, so
     // leading dots are escaped.

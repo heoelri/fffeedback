@@ -123,7 +123,7 @@ check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
     [$cert, $key] = $pem('localhost');
     [$otherCa] = $pem('other');
     $log = "$dir/smtp.log";
-    $server = proc_open([PHP_BINARY, __DIR__ . '/fake-smtp.php', $cert, $key, '2526', $log, '2'], [1 => ['pipe', 'w']], $pipes);
+    $server = proc_open([PHP_BINARY, __DIR__ . '/fake-smtp.php', $cert, $key, '2526', $log, '3'], [1 => ['pipe', 'w']], $pipes);
     $s = ['host' => 'localhost', 'port' => 2526, 'username' => 'umfrage@example.org', 'password' => 'p@ss', 'ca_file' => $cert, 'envelope' => 'umfrage@example.org'];
     try {
         eq(fgets($pipes[1]), "ready\n", 'Fake-SMTP gestartet');
@@ -133,8 +133,11 @@ check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
         ok(smtp_send($s, 'mitglied@example.org', $subject, "Grüße\n.Punkt\r\nEnde", 'Umfrage <umfrage@example.org>'));
         ok(!smtp_send($s, 'abgelehnt@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'Empfänger abgelehnt');
         ok(smtp_send($s, 'zweites@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'nach RSET weiter');
+        try { smtp_send($s, 'abbruch@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'); throw new Exception('Abbruch nicht erkannt'); }
+        catch (RuntimeException $e) { ok(str_contains($e->getMessage(), 'abgebrochen'), $e->getMessage()); }
+        ok(smtp_send($s, 'drittes@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'neue Sitzung nach Abbruch');
         $msg = file_get_contents($log);
-        eq(substr_count($msg, 'Auth: '), 1, 'eine Sitzung für alle Mails');
+        eq(substr_count($msg, 'Auth: '), 2, 'eine Sitzung je Verbindung');
         ok(str_contains($msg, "Auth: umfrage@example.org/p@ss\nMAIL FROM:<umfrage@example.org>\nRCPT TO:<mitglied@example.org>\n"), $msg);
         ok(str_contains($msg, "RCPT TO:<zweites@example.org>\n"), 'zweite Mail');
         ok(preg_match('/^Date: .+ \+0000\r$/m', $msg) === 1, 'Date-Header');
