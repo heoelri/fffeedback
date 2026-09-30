@@ -1,0 +1,47 @@
+name: Deploy
+
+# Uploads public/ to the webspace after CI passed on main, or on manual start.
+# Skipped entirely until the repository variable DEPLOY_URL is set (see README).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      vars.DEPLOY_URL != '' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    environment: webspace
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - run: sudo apt-get install -y -qq lftp
+
+      # config.php is not in the repository and never touched: it lives only on the server.
+      # No --delete, so a misconfigured target directory can never lose existing files.
+      - name: Upload public/
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          LFTP_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+        run: |
+          lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm yes; set net:max-retries 2;
+            open --env-password -u '$DEPLOY_USER' '$DEPLOY_URL';
+            mirror --reverse --verbose public/ ."
+
+      - name: Check site
+        if: vars.SITE_URL != ''
+        run: curl -fsS -o /dev/null "${{ vars.SITE_URL }}/admin.php"

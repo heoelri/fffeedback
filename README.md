@@ -92,9 +92,44 @@ Angewendete Best Practices für Mitgliederbefragungen:
    - `admin_password`: Passwort für die Adminoberfläche, mindestens 12 Zeichen
    - `base_url`: Adresse des Ordners, z. B. `https://www.feuerwehr-example.de/umfrage`
    - `mail_from`: Absender, am besten ein Postfach **der eigenen Domain beim selben Hoster**. Das verringert die Gefahr, dass Mails im Spam landen.
-3. Den **Inhalt** von `public/` per FTP in einen Ordner auf dem Webspace hochladen, z. B. `/umfrage`.
+3. Den **Inhalt** von `public/` in einen Ordner auf dem Webspace hochladen, z. B. `/umfrage`. Das geht per FTP-Programm (z. B. FileZilla) oder automatisch, siehe [Automatisches Deployment](#automatisches-deployment-mit-github-actions). `config.php` gehört in denselben Ordner.
 4. **HTTPS** für die Domain aktivieren. Das bieten fast alle Hoster kostenlos über Let's Encrypt an.
 5. `https://…/umfrage/admin.php` öffnen und anmelden.
+
+### Für die eigene Feuerwehr nutzen
+
+1. Das Repository auf GitHub **forken** (oder den Code herunterladen).
+2. Die Umfrage anpassen, siehe [Neue Umfrage erstellen](#neue-umfrage-erstellen).
+3. Wie oben installieren, von Hand oder mit dem Workflow unten.
+
+### Automatisches Deployment mit GitHub Actions
+
+`.github/workflows/deploy.yml` lädt `public/` per **SFTP** oder **FTPS** auf den Webspace:
+
+- automatisch, sobald die Tests (CI) nach einem Push auf `main` erfolgreich waren
+- von Hand unter *Actions → Deploy → Run workflow*
+
+Ohne Konfiguration wird der Workflow übersprungen. Einrichtung:
+
+1. `config.php` **einmalig von Hand** in den Zielordner hochladen (siehe oben). Der Workflow überträgt und überschreibt sie nie. So stehen `app_secret` und Passwörter nicht in GitHub.
+2. Im Repository unter *Settings → Environments* eine Umgebung **`webspace`** anlegen. Empfohlen: Unter *Required reviewers* eine Person eintragen, dann muss jedes Deployment bestätigt werden.
+3. In dieser Umgebung eintragen:
+
+   | Art | Name | Beispiel |
+   |---|---|---|
+   | Variable | `DEPLOY_URL` | `sftp://ssh.example-hoster.de/html/umfrage` oder `ftp://ftp.example-hoster.de/umfrage` |
+   | Variable | `DEPLOY_USER` | FTP- bzw. SFTP-Benutzer des Hosters |
+   | Secret | `DEPLOY_PASSWORD` | zugehöriges Passwort |
+   | Variable (optional) | `SITE_URL` | `https://www.feuerwehr-example.de/umfrage`. Danach wird geprüft, ob `admin.php` erreichbar ist |
+
+   Der Pfad in `DEPLOY_URL` ist der Zielordner. Wie er genau heißt, steht in den FTP-Zugangsdaten des Hosters.
+
+Gut zu wissen:
+
+- **Verschlüsselung ist Pflicht.** Bei `ftp://` erzwingt der Workflow TLS (FTPS). Kann der Hoster das nicht, stattdessen `sftp://` verwenden.
+- **Es wird nichts gelöscht.** Dateien, die es im Repository nicht mehr gibt, bleiben auf dem Server und müssen bei Bedarf von Hand entfernt werden. Ein falsch eingetragener Zielordner kann so keine bestehende Website zerstören.
+- **Deployment während einer laufenden Umfrage ist möglich.** Links und Entwürfe bleiben gültig, weil `config.php` (und damit `app_secret`) unverändert bleibt.
+- **Anonymität:** Wer die Umgebung `webspace` verwalten kann, hat Zugriff auf den Webspace. Dafür gilt dasselbe wie im [Anonymitätskonzept](#anonymitätskonzept): Möglichst nicht die Einheitsführung.
 
 **Hinweis zu E-Mail-Limits:** Viele Hoster begrenzen die Zahl der Mails pro Stunde. Bei vielen Adressen sollten die Einladungen deshalb in Blöcken verschickt werden. Adressen, die schon eingeladen sind, werden übersprungen. Nicht zugestellte Einladungen sind in der Liste markiert und lassen sich mit „Erneut einladen“ nachholen.
 
@@ -163,6 +198,8 @@ Danach `http://127.0.0.1:8123/admin.php` öffnen, das Passwort ist `geheim-lokal
 GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push auf `main` und jedem Pull Request alle Tests aus: mit PHP 8.1 + MariaDB 10.6 und mit PHP 8.4 + MySQL 8.4. Außerdem prüft der Workflow, ob der Fragenkatalog aktuell ist.
 
 Bei jedem Pull Request, der `public/` betrifft, erzeugt `.github/workflows/ui-screenshots.yml` per Playwright Screenshots der Umfrage- und Admin-Seiten (`tests/ui-screenshots.mjs`). `.github/workflows/ui-screenshot-comment.yml` bettet sie anschließend als Kommentar in den Pull Request ein. Die Bilder liegen im Branch `ui-screenshots-pr-<Nummer>`, der beim Schließen des Pull Requests gelöscht wird (`ui-screenshot-cleanup.yml`).
+
+`.github/workflows/deploy.yml` bringt `main` nach erfolgreicher CI auf den Webspace, siehe [Automatisches Deployment](#automatisches-deployment-mit-github-actions).
 
 ## Lizenz
 
