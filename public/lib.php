@@ -260,6 +260,7 @@ function send_mail(string $to, string $subject, string $text): bool
         return file_put_contents($c['mail_log'], json_encode(compact('to', 'subject', 'text')) . "\n", FILE_APPEND) !== false;
     }
     $headers = ['From' => $c['mail_from'], 'MIME-Version' => '1.0', 'Content-Type' => 'text/plain; charset=UTF-8', 'Content-Transfer-Encoding' => '8bit'];
+    if (!function_exists('mail')) throw new RuntimeException('Die PHP-Funktion mail() ist beim Hoster deaktiviert. Bitte im Kundenmenü des Hosters den Mailversand für PHP aktivieren.');
     $envelope = preg_match('/<([^>]+)>/', $c['mail_from'], $m) ? $m[1] : $c['mail_from'];
     $params = filter_var($envelope, FILTER_VALIDATE_EMAIL) ? "-f$envelope" : '';
     return mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $text, $headers, $params);

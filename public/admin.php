@@ -7,6 +7,16 @@ session_name('fffadmin');
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Strict', 'secure' => str_starts_with(config()['base_url'], 'https://')]);
 session_start();
 
+// Instead of a blank 500 page: log the error and show logged-in admins what went wrong.
+set_exception_handler(function (Throwable $e): never {
+    error_log((string) $e);
+    http_response_code(500);
+    page('Fehler', '<p class="warn">' . (empty($_SESSION['admin'])
+        ? 'Ein Fehler ist aufgetreten.'
+        : 'Fehler: ' . esc($e->getMessage()) . ' (' . esc(basename($e->getFile())) . ':' . $e->getLine() . ')')
+        . '</p><p><a href="admin.php">Zurück</a></p>');
+});
+
 function page(string $title, string $body): never
 {
     $logout = empty($_SESSION['admin']) ? '' : '<form method="post" class="logout">' . csrf() . '<button name="action" value="logout" class="secondary">Abmelden</button></form>';
@@ -107,7 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$survey) redirect('', 'Umfrage nicht gefunden.');
     $back = '?s=' . urlencode($survey['slug']);
     if ($survey['closed']) redirect($back, 'Die Umfrage ist beendet.');
-    @set_time_limit(300);
+    // Many hosters disable set_time_limit; since PHP 8 calling it then is a fatal error, even with @.
+    if (function_exists('set_time_limit')) set_time_limit(300);
 
     switch ($action) {
         case 'invite':

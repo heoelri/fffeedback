@@ -131,7 +131,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
     $docroot = sys_get_temp_dir() . '/fffeedback-docroot';
     @mkdir($docroot);
     if (!file_exists("$docroot/umfrage")) symlink(realpath(__DIR__ . '/../public'), "$docroot/umfrage");
-    $server = proc_open([PHP_BINARY, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-S', '127.0.0.1:8124', '-t', $docroot], [1 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a'], 2 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a']], $pipes);
+    $server = proc_open([PHP_BINARY, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-d', 'disable_functions=set_time_limit', '-S', '127.0.0.1:8124', '-t', $docroot], [1 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a'], 2 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a']], $pipes);
     try {
         for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', 8124); $i++) usleep(100_000);
 
