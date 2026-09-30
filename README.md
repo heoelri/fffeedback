@@ -6,7 +6,7 @@ Web-basierte, anonyme Mitgliederbefragung für die Einsatzabteilung der **Einhei
 
 **Warum?** Wir wollen besser werden. Dafür müssen wir wissen, was gut läuft und was schlecht läuft – was wir verbessern müssen und was nicht.
 
-Zum Jahresende werden alle Angehörigen der Einsatzabteilung per E-Mail eingeladen. Befragt wird zu diesen Themen: Gesamteindruck, Beteiligung, Einsätze, Atemschutz, Gerätehaus, Schutzausrüstung, Ausbildung, Übungsdienste, Zusammenarbeit sowie Kommunikation und Führung.
+Zum Jahresende werden alle Angehörigen der Einsatzabteilung per E-Mail eingeladen. Befragt wird zu diesen Themen: Gesamteindruck, Beteiligung, Einsätze, Atemschutz, Gerätehaus, Schutzausrüstung, Ausbildung, Übungsdienste, Zusammenarbeit, Kommunikation und Führung sowie Anerkennung und Wertschätzung (inkl. Übungs-/Einsatzgeld).
 
 Ziele:
 

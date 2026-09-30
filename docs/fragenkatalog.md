@@ -197,6 +197,25 @@ _Wenn du etwas nicht beurteilen kannst, wähle „Kann ich nicht beurteilen“._
 - **Möchtest du zum Thema „Kommunikation und Führung“ noch etwas sagen?**  
   Freitext
 
+## Anerkennung und Wertschätzung
+
+_Das Übungsgeld wird ab 2026 schrittweise angepasst. Über Höhe und Form entscheidet die Stadt – mit deinen Antworten sammeln wir ein Meinungsbild, das wir einbringen können. Es gibt keine richtigen oder falschen Antworten._
+
+- **Ich fühle mich für meinen Einsatz in der Feuerwehr wertgeschätzt.**  
+  Auswahl: trifft voll zu · trifft eher zu · teils/teils · trifft eher nicht zu · trifft nicht zu · Kann ich nicht beurteilen + optionaler Kommentar
+- **Welche Form der Anerkennung ist dir am wichtigsten?**  
+  Auswahl: Dank und Rückmeldung durch die Führung · Gute Ausrüstung · Lehrgänge / Weiterbildung · Übungs- oder Einsatzgeld · Kameradschaftsveranstaltungen · Vergünstigungen (z. B. Ehrenamtskarte) · Ehrungen / Beförderungen · Sonstiges + optionaler Kommentar
+- **Wie stehst du grundsätzlich zu einer Bezahlung für Übungsdienste und Einsätze (Übungs- bzw. Einsatzgeld)?**  
+  Auswahl: Dafür · Eher dafür · Eher dagegen · Dagegen · Ist mir egal + optionaler Kommentar
+- **Welche Form fändest du am sinnvollsten?** _(nur wenn „Wie stehst du grundsätzlich zu einer Bezahlung für Übungsdienste und Einsätze (Übungs- bzw. Einsatzgeld)?“ = Dafür / Eher dafür)_  
+  Auswahl: Pro Übungsdienst (wie bisher) · Pro Einsatz · Pro Übungsdienst und pro Einsatz · Jahrespauschale bei Mindestbeteiligung · An die Kameradschaftskasse statt an Einzelne + optionaler Kommentar
+- **Welche Bedenken hast du?** _(nur wenn „Wie stehst du grundsätzlich zu einer Bezahlung für Übungsdienste und Einsätze (Übungs- bzw. Einsatzgeld)?“ = Eher dagegen / Dagegen)_  
+  Mehrfachauswahl: Ehrenamt sollte unbezahlt bleiben · Könnte die Kameradschaft verändern · Geld besser in Ausstattung investieren · Ungerecht für alle, die wenig Zeit haben (Arbeit, Familie) · Verwaltungsaufwand · Sonstiges + optionaler Kommentar
+- **Ich weiß, welche Zahlungen und Erstattungen mir zustehen (z. B. Übungsgeld, Verdienstausfall, Fahrtkosten).**  
+  Auswahl: trifft voll zu · trifft eher zu · teils/teils · trifft eher nicht zu · trifft nicht zu · Kann ich nicht beurteilen + optionaler Kommentar
+- **Möchtest du zum Thema „Anerkennung und Wertschätzung“ noch etwas sagen?**  
+  Freitext
+
 ## Zum Schluss
 
 - **Was lief 2026 gut?**  

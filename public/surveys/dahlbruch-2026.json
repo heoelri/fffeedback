@@ -148,6 +148,19 @@
       ]
     },
     {
+      "id": "anerkennung",
+      "title": "Anerkennung und Wertschätzung",
+      "description": "Das Übungsgeld wird ab 2026 schrittweise angepasst. Über Höhe und Form entscheidet die Stadt – mit deinen Antworten sammeln wir ein Meinungsbild, das wir einbringen können. Es gibt keine richtigen oder falschen Antworten.",
+      "questions": [
+        { "id": "anerk_wertschaetzung", "type": "scale", "scale": "agree", "text": "Ich fühle mich für meinen Einsatz in der Feuerwehr wertgeschätzt." },
+        { "id": "anerk_wichtigste", "type": "single", "text": "Welche Form der Anerkennung ist dir am wichtigsten?", "options": ["Dank und Rückmeldung durch die Führung", "Gute Ausrüstung", "Lehrgänge / Weiterbildung", "Übungs- oder Einsatzgeld", "Kameradschaftsveranstaltungen", "Vergünstigungen (z. B. Ehrenamtskarte)", "Ehrungen / Beförderungen", "Sonstiges"] },
+        { "id": "geld_haltung", "type": "single", "text": "Wie stehst du grundsätzlich zu einer Bezahlung für Übungsdienste und Einsätze (Übungs- bzw. Einsatzgeld)?", "options": ["Dafür", "Eher dafür", "Eher dagegen", "Dagegen", "Ist mir egal"] },
+        { "id": "geld_form", "type": "single", "text": "Welche Form fändest du am sinnvollsten?", "options": ["Pro Übungsdienst (wie bisher)", "Pro Einsatz", "Pro Übungsdienst und pro Einsatz", "Jahrespauschale bei Mindestbeteiligung", "An die Kameradschaftskasse statt an Einzelne"], "showIf": { "q": "geld_haltung", "in": ["Dafür", "Eher dafür"] } },
+        { "id": "geld_bedenken", "type": "multi", "text": "Welche Bedenken hast du?", "options": ["Ehrenamt sollte unbezahlt bleiben", "Könnte die Kameradschaft verändern", "Geld besser in Ausstattung investieren", "Ungerecht für alle, die wenig Zeit haben (Arbeit, Familie)", "Verwaltungsaufwand", "Sonstiges"], "showIf": { "q": "geld_haltung", "in": ["Eher dagegen", "Dagegen"] } },
+        { "id": "erstattung_bekannt", "type": "scale", "scale": "agree", "text": "Ich weiß, welche Zahlungen und Erstattungen mir zustehen (z. B. Übungsgeld, Verdienstausfall, Fahrtkosten)." }
+      ]
+    },
+    {
       "id": "allgemein",
       "title": "Zum Schluss",
       "freeText": false,
