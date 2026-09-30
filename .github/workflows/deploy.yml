@@ -18,30 +18,51 @@ concurrency:
 
 jobs:
   deploy:
+    # Repository-level variable: environment variables are not yet available in a job-level if.
     if: >-
       vars.DEPLOY_URL != '' && (github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-latest
     environment: webspace
+    env:
+      DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.SHA }}
 
-      - run: sudo apt-get install -y -qq lftp
+      # CI runs can finish out of order; never replace a newer deployment with an older commit.
+      - name: Skip outdated commit
+        id: current
+        if: github.event_name == 'workflow_run'
+        run: |
+          head=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$head" = "$SHA" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::$SHA ist nicht mehr der aktuelle Stand von main ($head) – übersprungen."; fi
+
+      - name: Trust SFTP host key
+        if: github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true'
+        run: |
+          case "$DEPLOY_URL" in sftp://*)
+            [ -n "$DEPLOY_KNOWN_HOSTS" ] || { echo "::error::Für sftp:// muss DEPLOY_KNOWN_HOSTS gesetzt sein (siehe README)."; exit 1; }
+            mkdir -p ~/.ssh && printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts ;;
+          esac
+          sudo apt-get install -y -qq lftp
 
       # config.php is not in the repository and never touched: it lives only on the server.
-      # No --delete, so a misconfigured target directory can never lose existing files.
+      # No --delete, so files outside the repository are never removed.
       - name: Upload public/
+        if: github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true'
         env:
-          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           LFTP_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
         run: |
-          lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm yes; set net:max-retries 2;
+          lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm no; set net:max-retries 2;
             open --env-password -u '$DEPLOY_USER' '$DEPLOY_URL';
             mirror --reverse --verbose public/ ."
 
       - name: Check site
-        if: vars.SITE_URL != ''
+        if: vars.SITE_URL != '' && (github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true')
         run: curl -fsS -o /dev/null "${{ vars.SITE_URL }}/admin.php"

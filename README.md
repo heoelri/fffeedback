@@ -106,30 +106,30 @@ Angewendete Best Practices für Mitgliederbefragungen:
 
 `.github/workflows/deploy.yml` lädt `public/` per **SFTP** oder **FTPS** auf den Webspace:
 
-- automatisch, sobald die Tests (CI) nach einem Push auf `main` erfolgreich waren
+- automatisch, sobald die Tests (CI) nach einem Push auf `main` erfolgreich waren. Ist `main` inzwischen weiter, wird der ältere Stand übersprungen.
 - von Hand unter *Actions → Deploy → Run workflow*
 
 Ohne Konfiguration wird der Workflow übersprungen. Einrichtung:
 
 1. `config.php` **einmalig von Hand** in den Zielordner hochladen (siehe oben). Der Workflow überträgt und überschreibt sie nie. So stehen `app_secret` und Passwörter nicht in GitHub.
-2. Im Repository unter *Settings → Environments* eine Umgebung **`webspace`** anlegen. Empfohlen: Unter *Required reviewers* eine Person eintragen, dann muss jedes Deployment bestätigt werden.
-3. In dieser Umgebung eintragen:
+2. Im Repository unter *Settings → Environments* eine Umgebung **`webspace`** anlegen und dort das **Secret** `DEPLOY_PASSWORD` (Passwort des FTP- bzw. SFTP-Benutzers) eintragen. Empfohlen: Unter *Required reviewers* eine Person eintragen, dann muss jedes Deployment bestätigt werden.
+3. Unter *Settings → Secrets and variables → Actions → **Variables*** diese **Repository-Variablen** anlegen (nicht in der Umgebung, sonst sieht der Workflow sie beim Start nicht):
 
-   | Art | Name | Beispiel |
-   |---|---|---|
-   | Variable | `DEPLOY_URL` | `sftp://ssh.example-hoster.de/html/umfrage` oder `ftp://ftp.example-hoster.de/umfrage` |
-   | Variable | `DEPLOY_USER` | FTP- bzw. SFTP-Benutzer des Hosters |
-   | Secret | `DEPLOY_PASSWORD` | zugehöriges Passwort |
-   | Variable (optional) | `SITE_URL` | `https://www.feuerwehr-example.de/umfrage`. Danach wird geprüft, ob `admin.php` erreichbar ist |
+   | Name | Beispiel |
+   |---|---|
+   | `DEPLOY_URL` | `sftp://ssh.example-hoster.de/html/umfrage` oder `ftp://ftp.example-hoster.de/umfrage` |
+   | `DEPLOY_USER` | FTP- bzw. SFTP-Benutzer des Hosters |
+   | `DEPLOY_KNOWN_HOSTS` | nur bei `sftp://`, Pflicht: Ausgabe von `ssh-keyscan ssh.example-hoster.de`. Am besten mit dem Fingerabdruck vergleichen, den der Hoster veröffentlicht |
+   | `SITE_URL` (optional) | `https://www.feuerwehr-example.de/umfrage`. Danach wird geprüft, ob `admin.php` erreichbar ist |
 
    Der Pfad in `DEPLOY_URL` ist der Zielordner. Wie er genau heißt, steht in den FTP-Zugangsdaten des Hosters.
 
 Gut zu wissen:
 
-- **Verschlüsselung ist Pflicht.** Bei `ftp://` erzwingt der Workflow TLS (FTPS). Kann der Hoster das nicht, stattdessen `sftp://` verwenden.
-- **Es wird nichts gelöscht.** Dateien, die es im Repository nicht mehr gibt, bleiben auf dem Server und müssen bei Bedarf von Hand entfernt werden. Ein falsch eingetragener Zielordner kann so keine bestehende Website zerstören.
+- **Verschlüsselung ist Pflicht.** Bei `ftp://` erzwingt der Workflow TLS (FTPS). Kann der Hoster das nicht, stattdessen `sftp://` verwenden. Bei `sftp://` akzeptiert der Workflow nur den Server-Schlüssel aus `DEPLOY_KNOWN_HOSTS`.
+- **Zielordner genau prüfen.** Gelöscht wird nichts: Dateien, die es im Repository nicht mehr gibt, bleiben auf dem Server und müssen bei Bedarf von Hand entfernt werden. Gleichnamige Dateien werden aber **überschrieben**. Zeigt `DEPLOY_URL` z. B. auf das Hauptverzeichnis der Website, wird dort eine vorhandene `index.php` ersetzt. Deshalb immer einen eigenen, leeren Ordner wie `/umfrage` verwenden.
 - **Deployment während einer laufenden Umfrage ist möglich.** Links und Entwürfe bleiben gültig, weil `config.php` (und damit `app_secret`) unverändert bleibt.
-- **Anonymität:** Wer die Umgebung `webspace` verwalten kann, hat Zugriff auf den Webspace. Dafür gilt dasselbe wie im [Anonymitätskonzept](#anonymitätskonzept): Möglichst nicht die Einheitsführung.
+- **Anonymität:** Wer das Secret `DEPLOY_PASSWORD` verwalten kann, hat Zugriff auf den Webspace. Dafür gilt dasselbe wie im [Anonymitätskonzept](#anonymitätskonzept): Möglichst nicht die Einheitsführung.
 
 **Hinweis zu E-Mail-Limits:** Viele Hoster begrenzen die Zahl der Mails pro Stunde. Bei vielen Adressen sollten die Einladungen deshalb in Blöcken verschickt werden. Adressen, die schon eingeladen sind, werden übersprungen. Nicht zugestellte Einladungen sind in der Liste markiert und lassen sich mit „Erneut einladen“ nachholen.
 
