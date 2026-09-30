@@ -319,17 +319,17 @@ function smtp_write($socket, #[\SensitiveParameter] string $data): bool
     return true;
 }
 
-function smtp_reply($socket, int $expected): bool
+function smtp_reply($socket, int|array $expected): bool
 {
     for ($lines = 0; $lines < 100; $lines++) {
         $line = fgets($socket, 4096);
         if ($line === false || !preg_match('/^(\d{3})([ -])/', $line, $m)) return false;
-        if ($m[2] === ' ') return (int) $m[1] === $expected;
+        if ($m[2] === ' ') return in_array((int) $m[1], (array) $expected, true);
     }
     return false;
 }
 
-function smtp_command($socket, #[\SensitiveParameter] string $command, int $expected): bool
+function smtp_command($socket, #[\SensitiveParameter] string $command, int|array $expected): bool
 {
     return smtp_write($socket, "$command\r\n") && smtp_reply($socket, $expected);
 }
@@ -383,7 +383,7 @@ function smtp_send(#[\SensitiveParameter] array $s, string $to, string $subject,
         if ($reused) return smtp_send($s, $to, $subject, $text, $from); // the server may have closed an idle session
         throw new RuntimeException("SMTP-Server {$s['host']} lehnt den Absender {$s['envelope']} ab.");
     }
-    if (!smtp_command($socket, "RCPT TO:<$to>", 250)) {
+    if (!smtp_command($socket, "RCPT TO:<$to>", [250, 251, 252])) { // 251/252: forwarded or not verifiable, but accepted
         if (smtp_command($socket, 'RSET', 250)) return false; // only this recipient was rejected
         @fclose($socket);
         unset($sessions[$key]);

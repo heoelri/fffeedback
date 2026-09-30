@@ -133,6 +133,7 @@ check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
         ok(smtp_send($s, 'mitglied@example.org', $subject, "Grüße\n.Punkt\r\nEnde", 'Umfrage <umfrage@example.org>'));
         ok(!smtp_send($s, 'abgelehnt@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'Empfänger abgelehnt');
         ok(smtp_send($s, 'zweites@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'nach RSET weiter');
+        ok(smtp_send($s, 'weitergeleitet@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), '251 gilt als Erfolg');
         try { smtp_send($s, 'abbruch@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'); throw new Exception('Abbruch nicht erkannt'); }
         catch (RuntimeException $e) { ok(str_contains($e->getMessage(), 'abgebrochen'), $e->getMessage()); }
         ok(smtp_send($s, 'drittes@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'neue Sitzung nach Abbruch');

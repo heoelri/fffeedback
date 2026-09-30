@@ -51,7 +51,7 @@ Ziele:
 Bewusst minimal, damit das Tool auf günstigem Webspace läuft und auch Ehrenamtliche es warten können:
 
 - **Server:** PHP ≥ 8.1 mit `pdo_mysql` und `openssl`, dazu MySQL ≥ 5.7 oder MariaDB ≥ 10.3. Es gibt keine Abhängigkeiten, kein Composer, keinen Build-Schritt, kein `.htaccess`/mod_rewrite und keinen Cronjob. Die Tabellen legt die Anwendung beim ersten Aufruf von `admin.php` selbst an.
-- **E-Mail:** PHPs `mail()`, das jeder Webspace-Anbieter bereitstellt, oder optional SMTP mit STARTTLS (ohne Bibliothek).
+- **E-Mail:** PHPs `mail()`, sofern der Hoster es aktiviert hat (bei den meisten Webspaces der Fall), oder optional SMTP mit STARTTLS (ohne Bibliothek).
 - **Frontend:** HTML, CSS und Vanilla-JS. Der Server prüft alle Eingaben selbst und verwirft ungültige Werte sowie Antworten auf ausgeblendete Fragen. Tests stellen sicher, dass `logic.js` (Browser) und `lib.php` (Server) die gleichen Regeln anwenden.
 
 ```

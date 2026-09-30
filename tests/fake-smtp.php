@@ -40,7 +40,7 @@ for ($i = 0; $i < (int) ($argv[5] ?? 1); $i++) {
         if (!preg_match('/^RCPT TO:<[^>]+>$/', $rcpt)) exit(1);
         if (str_contains($rcpt, 'abgelehnt')) { fwrite($client, "550 No such user\r\n"); continue; }
         if (str_contains($rcpt, 'abbruch')) break; // simulate a dropped connection
-        fwrite($client, "250 Recipient accepted\r\n");
+        fwrite($client, str_contains($rcpt, 'weitergeleitet') ? "251 User not local; will forward\r\n" : "250 Recipient accepted\r\n");
         expect($client, '/^DATA$/', "354 End with a dot\r\n");
         $message = '';
         while (($data = fgets($client)) !== false && $data !== ".\r\n") $message .= $data;
