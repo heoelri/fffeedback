@@ -56,6 +56,7 @@ jobs:
           esac
           sudo apt-get install -y -qq lftp
 
+      # Target folder = path of DEPLOY_URL (e.g. sftp://host/umfrage → /umfrage), created if missing.
       # config.php lives only on the server: excluded explicitly, never uploaded or overwritten.
       # No --delete, so files outside the repository are never removed.
       - name: Upload public/
@@ -63,9 +64,14 @@ jobs:
         env:
           LFTP_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
         run: |
+          rest=${DEPLOY_URL#*://}
+          server=${DEPLOY_URL%%://*}://${rest%%/*}
+          dir=/; case "$rest" in */?*) dir=/${rest#*/} ;; esac
+          echo "Ziel: $server$dir"
           lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm no; set net:max-retries 2;
-            open --env-password -u '$DEPLOY_USER' '$DEPLOY_URL';
-            mirror --reverse --verbose --exclude-glob config.php public/ ."
+            open --env-password -u '$DEPLOY_USER' '$server';
+            mkdir -p -f '$dir';
+            mirror --reverse --verbose --exclude-glob config.php public/ '$dir'"
 
       - name: Check site
         if: vars.SITE_URL != '' && (github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true')

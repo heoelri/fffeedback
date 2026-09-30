@@ -6,7 +6,7 @@ return [
     'db_pass' => getenv('DB_PASS') ?: 'root',
     'app_secret' => str_repeat('x', 32),
     'admin_password' => 'geheim-lokal',
-    'base_url' => 'http://127.0.0.1:8123',
+    'base_url' => getenv('FFF_BASE_URL') ?: 'http://127.0.0.1:8123',
     'mail_from' => 'Test <test@example.org>',
     'mail_log' => sys_get_temp_dir() . '/fffeedback-test-mail.log',
 ];
