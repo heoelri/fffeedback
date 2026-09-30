@@ -44,12 +44,15 @@ jobs:
           if [ "$head" = "$SHA" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
           else echo "::notice::$SHA ist nicht mehr der aktuelle Stand von main ($head) – übersprungen."; fi
 
-      - name: Trust SFTP host key
+      - name: Check URL and trust SFTP host key
         if: github.event_name == 'workflow_dispatch' || steps.current.outputs.ok == 'true'
         run: |
-          case "$DEPLOY_URL" in sftp://*)
-            [ -n "$DEPLOY_KNOWN_HOSTS" ] || { echo "::error::Für sftp:// muss DEPLOY_KNOWN_HOSTS gesetzt sein (siehe README)."; exit 1; }
-            mkdir -p ~/.ssh && printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts ;;
+          case "$DEPLOY_URL" in
+            sftp://*)
+              [ -n "$DEPLOY_KNOWN_HOSTS" ] || { echo "::error::Für sftp:// muss DEPLOY_KNOWN_HOSTS gesetzt sein (siehe README)."; exit 1; }
+              mkdir -p ~/.ssh && printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts ;;
+            ftp://*|ftps://*) ;; # ftp:// is forced to TLS below, ftps:// is implicit TLS
+            *) echo "::error::DEPLOY_URL muss mit sftp://, ftp:// oder ftps:// beginnen – andere Protokolle würden das Passwort ggf. unverschlüsselt senden."; exit 1 ;;
           esac
           sudo apt-get install -y -qq lftp
 
