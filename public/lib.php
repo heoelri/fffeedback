@@ -253,17 +253,99 @@ function aggregate(array $survey, array $responses, ?array $filter = null): arra
 
 // ---- Mail & invitations ----
 
+// Sends via authenticated SMTP when smtp_host is configured (same mechanism as heoelri/ebmanager), otherwise via mail().
 function send_mail(string $to, string $subject, string $text): bool
 {
     $c = config();
     if (!empty($c['mail_log'])) { // for tests and local development
         return file_put_contents($c['mail_log'], json_encode(compact('to', 'subject', 'text')) . "\n", FILE_APPEND) !== false;
     }
-    $headers = ['From' => $c['mail_from'], 'MIME-Version' => '1.0', 'Content-Type' => 'text/plain; charset=UTF-8', 'Content-Transfer-Encoding' => '8bit'];
-    if (!function_exists('mail')) throw new RuntimeException('Die PHP-Funktion mail() ist beim Hoster deaktiviert. Bitte im Kundenmenü des Hosters den Mailversand für PHP aktivieren.');
     $envelope = preg_match('/<([^>]+)>/', $c['mail_from'], $m) ? $m[1] : $c['mail_from'];
+    // Encode a non-ASCII display name (e.g. "Einheitsführung") as RFC 2047.
+    $from = preg_match('/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/', $c['mail_from'], $m) && preg_match('/[^\x20-\x7e]/', $m[1])
+        ? '=?UTF-8?B?' . base64_encode($m[1]) . "?= <$m[2]>" : $c['mail_from'];
+    $subject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+    if (trim((string) ($c['smtp_host'] ?? '')) !== '') {
+        return smtp_send(smtp_settings($c, $envelope), $to, $subject, $text, $from);
+    }
+    $headers = ['From' => $from, 'MIME-Version' => '1.0', 'Content-Type' => 'text/plain; charset=UTF-8', 'Content-Transfer-Encoding' => '8bit'];
+    if (!function_exists('mail')) throw new RuntimeException('Die PHP-Funktion mail() ist beim Hoster deaktiviert. Bitte in config.php SMTP einrichten (smtp_host usw.) oder im Kundenmenü des Hosters den Mailversand für PHP aktivieren.');
     $params = filter_var($envelope, FILTER_VALIDATE_EMAIL) ? "-f$envelope" : '';
-    return mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $text, $headers, $params);
+    return mail($to, $subject, $text, $headers, $params);
+}
+
+function smtp_settings(array $c, string $envelope): array
+{
+    $s = [
+        'host' => trim((string) $c['smtp_host']),
+        'port' => (int) ($c['smtp_port'] ?? 587),
+        'username' => (string) ($c['smtp_username'] ?? ''),
+        'password' => (string) ($c['smtp_password'] ?? ''),
+        'ca_file' => (string) ($c['smtp_ca_file'] ?? ''),
+        'envelope' => $envelope,
+    ];
+    if (!preg_match('/^[A-Za-z0-9.-]+$/', $s['host']) || $s['port'] < 1 || $s['port'] > 65535
+        || $s['username'] === '' || $s['password'] === '' || ($s['ca_file'] !== '' && !is_file($s['ca_file']))
+        || !filter_var($envelope, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException('SMTP ist nicht vollständig konfiguriert (smtp_host, smtp_port, smtp_username, smtp_password und mail_from in config.php prüfen).');
+    }
+    return $s;
+}
+
+function smtp_write($socket, string $data): bool
+{
+    while ($data !== '') {
+        $written = fwrite($socket, $data);
+        if ($written === false || $written === 0) return false;
+        $data = substr($data, $written);
+    }
+    return true;
+}
+
+function smtp_reply($socket, int $expected): bool
+{
+    for ($lines = 0; $lines < 100; $lines++) {
+        $line = fgets($socket, 4096);
+        if ($line === false || !preg_match('/^(\d{3})([ -])/', $line, $m)) return false;
+        if ($m[2] === ' ') return (int) $m[1] === $expected;
+    }
+    return false;
+}
+
+function smtp_command($socket, string $command, int $expected): bool
+{
+    return smtp_write($socket, "$command\r\n") && smtp_reply($socket, $expected);
+}
+
+function smtp_send(array $s, string $to, string $subject, string $text, string $from): bool
+{
+    $ssl = ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $s['host']];
+    if ($s['ca_file'] !== '') $ssl['cafile'] = $s['ca_file'];
+    $socket = @stream_socket_client("tcp://{$s['host']}:{$s['port']}", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => $ssl]));
+    if ($socket === false) return false;
+    stream_set_timeout($socket, 10);
+    // Credentials are sent only after certificate-verified STARTTLS.
+    $ok = smtp_reply($socket, 220)
+        && smtp_command($socket, 'EHLO localhost', 250)
+        && smtp_command($socket, 'STARTTLS', 220)
+        && @stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT) === true
+        && smtp_command($socket, 'EHLO localhost', 250)
+        && smtp_command($socket, 'AUTH LOGIN', 334)
+        && smtp_command($socket, base64_encode($s['username']), 334)
+        && smtp_command($socket, base64_encode($s['password']), 235)
+        && smtp_command($socket, "MAIL FROM:<{$s['envelope']}>", 250)
+        && smtp_command($socket, "RCPT TO:<$to>", 250)
+        && smtp_command($socket, 'DATA', 354);
+    if ($ok) {
+        // SMTP ends DATA on a lone dot, so leading dots must be escaped.
+        $body = str_replace("\n", "\r\n", preg_replace('/^\./m', '..', str_replace(["\r\n", "\r"], "\n", $text)));
+        $headers = 'Date: ' . gmdate(DATE_RFC2822) . "\r\nFrom: $from\r\nTo: $to\r\nSubject: $subject\r\n"
+            . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
+        $ok = smtp_write($socket, "$headers\r\n$body\r\n.\r\n") && smtp_reply($socket, 250);
+    }
+    if ($ok) smtp_command($socket, 'QUIT', 221);
+    fclose($socket);
+    return $ok;
 }
 
 function send_link(array $survey, string $template, string $email): bool

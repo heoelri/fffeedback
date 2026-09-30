@@ -110,6 +110,47 @@ check('aggregate: Zählung, Mittelwert, Mindestgruppengröße', function () use 
     eq(aggregate($survey, $rows, ['q' => 'geschlecht', 'v' => 'Weiblich'])['n'], 11, 'kein erlaubter Filter');
 });
 
+check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
+    $dir = sys_get_temp_dir() . '/fff-smtp-' . bin2hex(random_bytes(4));
+    mkdir($dir);
+    $pem = function (string $name) use ($dir): array {
+        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        $cert = openssl_csr_sign(openssl_csr_new(['commonName' => $name], $key), null, $key, 1);
+        openssl_x509_export_to_file($cert, "$dir/$name.crt");
+        openssl_pkey_export_to_file($key, "$dir/$name.key");
+        return ["$dir/$name.crt", "$dir/$name.key"];
+    };
+    [$cert, $key] = $pem('localhost');
+    [$otherCa] = $pem('other');
+    $log = "$dir/smtp.log";
+    $server = proc_open([PHP_BINARY, __DIR__ . '/fake-smtp.php', $cert, $key, '2526', $log, '2'], [1 => ['pipe', 'w']], $pipes);
+    $s = ['host' => 'localhost', 'port' => 2526, 'username' => 'umfrage@example.org', 'password' => 'p@ss', 'ca_file' => $cert, 'envelope' => 'umfrage@example.org'];
+    try {
+        eq(fgets($pipes[1]), "ready\n", 'Fake-SMTP gestartet');
+        ok(!smtp_send([...$s, 'ca_file' => $otherCa], 'a@example.org', 'x', 'x', 'x'), 'fremdes Zertifikat wird abgelehnt');
+        ok(smtp_send($s, 'mitglied@example.org', '=?UTF-8?B?' . base64_encode('Einladung') . '?=', "Hallo\n.Punkt\r\nEnde", 'Umfrage <umfrage@example.org>'));
+        $msg = file_get_contents($log);
+        ok(str_contains($msg, "Auth: umfrage@example.org/p@ss\nMAIL FROM:<umfrage@example.org>\nRCPT TO:<mitglied@example.org>\n"), $msg);
+        ok(preg_match('/^Date: .+ \+0000\r$/m', $msg) === 1, 'Date-Header');
+        ok(str_contains($msg, 'Subject: =?UTF-8?B?' . base64_encode('Einladung') . "?=\r\n"), 'Betreff');
+        ok(str_contains($msg, "\r\n\r\nHallo\r\n..Punkt\r\nEnde\r\n"), 'Punkte maskiert, CRLF');
+    } finally {
+        proc_terminate($server);
+        proc_close($server);
+        array_map('unlink', glob("$dir/*"));
+        rmdir($dir);
+    }
+});
+
+check('smtp_settings verlangt vollständige Konfiguration', function () {
+    $c = ['smtp_host' => 'smtp.strato.de', 'smtp_username' => 'u@example.org', 'smtp_password' => 'x'];
+    eq(smtp_settings($c, 'u@example.org')['port'], 587);
+    foreach ([['smtp_password' => ''], ['smtp_host' => 'a b'], ['smtp_port' => 0], ['smtp_ca_file' => '/nicht/da']] as $bad) {
+        try { smtp_settings([...$c, ...$bad], 'u@example.org'); throw new Exception('keine Exception: ' . json_encode($bad)); }
+        catch (RuntimeException $e) { ok(str_contains($e->getMessage(), 'SMTP ist nicht vollständig'), json_encode($bad)); }
+    }
+});
+
 // ---- End-to-end over HTTP ----
 
 try {
