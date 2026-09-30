@@ -68,7 +68,7 @@ jobs:
           server=${DEPLOY_URL%%://*}://${rest%%/*}
           dir=/; case "$rest" in */?*) dir=/${rest#*/} ;; esac
           echo "Ziel: $server$dir"
-          lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm no; set net:max-retries 2;
+          lftp -c "set cmd:fail-exit yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set sftp:auto-confirm no; set net:max-retries 2;
             open --env-password -u '$DEPLOY_USER' '$server';
             mkdir -p -f '$dir';
             mirror --reverse --verbose --exclude-glob config.php public/ '$dir'"

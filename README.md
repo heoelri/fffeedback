@@ -128,6 +128,7 @@ Gut zu wissen:
 
 - **Verschlüsselung ist Pflicht.** Erlaubt sind nur `sftp://`, `ftp://` (der Workflow erzwingt TLS, also FTPS) und `ftps://`. Andere Angaben brechen ab. Kann der Hoster das nicht, stattdessen `sftp://` verwenden. Bei `sftp://` akzeptiert der Workflow nur den Server-Schlüssel aus `DEPLOY_KNOWN_HOSTS`.
 - **Zielordner genau prüfen.** Gelöscht wird nichts: Dateien, die es im Repository nicht mehr gibt, bleiben auf dem Server und müssen bei Bedarf von Hand entfernt werden. Gleichnamige Dateien werden aber **überschrieben**. Zeigt `DEPLOY_URL` z. B. auf das Hauptverzeichnis der Website, wird dort eine vorhandene `index.php` ersetzt. Deshalb immer einen eigenen, leeren Ordner wie `/umfrage` verwenden.
+- **SFTP-Startordner ≠ Ordner der Domain.** Bei vielen Hostern (z. B. Strato) zeigt die Domain auf einen Unterordner des Webspace. Dann gehört dieser Ordner in den Pfad, z. B. `sftp://…/<domain-ordner>/umfrage`. Welcher Ordner das ist, steht im Kundenmenü bei der Domain (Ziel- bzw. Stammverzeichnis). Liefert der Schritt „Check site“ 404, obwohl der Upload geklappt hat, liegt es fast immer daran.
 - **Deployment während einer laufenden Umfrage ist möglich.** Links und Entwürfe bleiben gültig, weil `config.php` (und damit `app_secret`) unverändert bleibt.
 - **Anonymität:** Wer das Secret `DEPLOY_PASSWORD` verwalten kann, hat Zugriff auf den Webspace. Dafür gilt dasselbe wie im [Anonymitätskonzept](#anonymitätskonzept): Möglichst nicht die Einheitsführung.
 
