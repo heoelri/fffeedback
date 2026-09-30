@@ -51,7 +51,7 @@ Ziele:
 Bewusst minimal, damit das Tool auf günstigem Webspace läuft und auch Ehrenamtliche es warten können:
 
 - **Server:** PHP ≥ 8.1 mit `pdo_mysql` und `openssl`, dazu MySQL ≥ 5.7 oder MariaDB ≥ 10.3. Es gibt keine Abhängigkeiten, kein Composer, keinen Build-Schritt, kein `.htaccess`/mod_rewrite und keinen Cronjob. Die Tabellen legt die Anwendung beim ersten Aufruf von `admin.php` selbst an.
-- **E-Mail:** PHPs `mail()`, das jeder Webspace-Anbieter bereitstellt.
+- **E-Mail:** PHPs `mail()`, sofern der Hoster es aktiviert hat (bei den meisten Webspaces der Fall), oder optional SMTP mit STARTTLS (ohne Bibliothek).
 - **Frontend:** HTML, CSS und Vanilla-JS. Der Server prüft alle Eingaben selbst und verwirft ungültige Werte sowie Antworten auf ausgeblendete Fragen. Tests stellen sicher, dass `logic.js` (Browser) und `lib.php` (Server) die gleichen Regeln anwenden.
 
 ```
@@ -92,6 +92,7 @@ Angewendete Best Practices für Mitgliederbefragungen:
    - `admin_password`: Passwort für die Adminoberfläche, mindestens 12 Zeichen
    - `base_url`: Adresse des Ordners, z. B. `https://www.feuerwehr-example.de/umfrage`
    - `mail_from`: Absender, am besten ein Postfach **der eigenen Domain beim selben Hoster**. Das verringert die Gefahr, dass Mails im Spam landen.
+   - Optional, empfohlen: `smtp_host`, `smtp_port`, `smtp_username`, `smtp_password` für den Versand über das Postfach aus `mail_from` (bei Strato: `smtp.strato.de`, Port `587`, Benutzername = vollständige E-Mail-Adresse). Ist `smtp_host` gesetzt, wird statt PHPs `mail()` per SMTP verschickt. Das ist zuverlässiger und funktioniert auch, wenn der Hoster `mail()` deaktiviert hat. Die Verbindung wird immer per STARTTLS mit geprüftem Zertifikat verschlüsselt, bevor die Zugangsdaten gesendet werden.
 3. Den **Inhalt** von `public/` in einen Ordner auf dem Webspace hochladen, z. B. `/umfrage`. Das geht per FTP-Programm (z. B. FileZilla) oder automatisch, siehe [Automatisches Deployment](#automatisches-deployment-mit-github-actions). `config.php` gehört in denselben Ordner.
 4. **HTTPS** für die Domain aktivieren. Das bieten fast alle Hoster kostenlos über Let's Encrypt an.
 5. `https://…/umfrage/admin.php` öffnen und anmelden.

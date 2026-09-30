@@ -19,6 +19,14 @@ return [
     // Sender for invitations (should be a mailbox of your own domain at the same provider)
     'mail_from' => 'Einheitsführung Dahlbruch <umfrage@example.org>',
 
+    // Optional, recommended: send via authenticated SMTP (STARTTLS required) instead of PHP mail().
+    // The mailbox should be the one in mail_from. Example for Strato:
+    // 'smtp_host' => 'smtp.strato.de',
+    // 'smtp_port' => 587,
+    // 'smtp_username' => 'umfrage@example.org', // full e-mail address
+    // 'smtp_password' => '',
+    // 'smtp_ca_file' => '', // only for private CAs; the system CA store is used otherwise
+
     // Local testing only: write e-mails to this file instead of sending them (never inside the web folder!)
     // 'mail_log' => sys_get_temp_dir() . '/fffeedback-mails.log',
 ];

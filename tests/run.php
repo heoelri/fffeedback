@@ -110,6 +110,70 @@ check('aggregate: Zählung, Mittelwert, Mindestgruppengröße', function () use 
     eq(aggregate($survey, $rows, ['q' => 'geschlecht', 'v' => 'Weiblich'])['n'], 11, 'kein erlaubter Filter');
 });
 
+check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
+    $dir = sys_get_temp_dir() . '/fff-smtp-' . bin2hex(random_bytes(4));
+    mkdir($dir);
+    $pem = function (string $name) use ($dir): array {
+        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        $cert = openssl_csr_sign(openssl_csr_new(['commonName' => $name], $key), null, $key, 1);
+        openssl_x509_export_to_file($cert, "$dir/$name.crt");
+        openssl_pkey_export_to_file($key, "$dir/$name.key");
+        return ["$dir/$name.crt", "$dir/$name.key"];
+    };
+    [$cert, $key] = $pem('localhost');
+    [$otherCa] = $pem('other');
+    $log = "$dir/smtp.log";
+    $server = proc_open([PHP_BINARY, __DIR__ . '/fake-smtp.php', $cert, $key, '2526', $log, '3'], [1 => ['pipe', 'w']], $pipes);
+    $s = ['host' => 'localhost', 'port' => 2526, 'username' => 'umfrage@example.org', 'password' => 'p@ss', 'ca_file' => $cert, 'envelope' => 'umfrage@example.org'];
+    try {
+        eq(fgets($pipes[1]), "ready\n", 'Fake-SMTP gestartet');
+        try { smtp_send([...$s, 'ca_file' => $otherCa], 'a@example.org', 'x', 'x', 'x'); throw new Exception('fremdes Zertifikat akzeptiert'); }
+        catch (RuntimeException $e) { ok(str_contains($e->getMessage(), 'STARTTLS'), $e->getMessage()); }
+        $subject = mime_header('Einladung');
+        ok(smtp_send($s, 'mitglied@example.org', $subject, "Grüße\n.Punkt\r\nEnde", 'Umfrage <umfrage@example.org>'));
+        ok(!smtp_send($s, 'abgelehnt@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'Empfänger abgelehnt');
+        ok(smtp_send($s, 'zweites@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'nach RSET weiter');
+        ok(smtp_send($s, 'weitergeleitet@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), '251 gilt als Erfolg');
+        try { smtp_send($s, 'abbruch@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'); throw new Exception('Abbruch nicht erkannt'); }
+        catch (RuntimeException $e) { ok(str_contains($e->getMessage(), 'abgebrochen'), $e->getMessage()); }
+        ok(smtp_send($s, 'drittes@example.org', $subject, 'x', 'Umfrage <umfrage@example.org>'), 'neue Sitzung nach Abbruch');
+        $msg = file_get_contents($log);
+        eq(substr_count($msg, 'Auth: '), 2, 'eine Sitzung je Verbindung');
+        ok(str_contains($msg, "Auth: umfrage@example.org/p@ss\nMAIL FROM:<umfrage@example.org>\nRCPT TO:<mitglied@example.org>\n"), $msg);
+        ok(str_contains($msg, "RCPT TO:<zweites@example.org>\n"), 'zweite Mail');
+        ok(preg_match('/^Date: .+ \+0000\r$/m', $msg) === 1, 'Date-Header');
+        ok(str_contains($msg, 'Subject: =?UTF-8?B?' . base64_encode('Einladung') . "?=\r\n"), 'Betreff');
+        ok(str_contains($msg, "Content-Transfer-Encoding: quoted-printable\r\n\r\nGr=C3=BC=C3=9Fe\r\n..Punkt\r\nEnde\r\n"), 'quoted-printable, Punkte maskiert, CRLF');
+    } finally {
+        proc_terminate($server);
+        proc_close($server);
+        array_map('unlink', glob("$dir/*"));
+        rmdir($dir);
+    }
+});
+
+check('mime_header: Encoded-Words höchstens 75 Zeichen, UTF-8-sicher', function () use ($survey) {
+    $text = str_replace('{title}', $survey['title'], $survey['mail']['subject']) . ' – äöüß €';
+    $words = explode("\r\n ", mime_header($text));
+    ok(count($words) > 1, 'aufgeteilt');
+    $decoded = '';
+    foreach ($words as $w) {
+        ok(strlen($w) <= 75 && preg_match('/^=\?UTF-8\?B\?([A-Za-z0-9+\/=]+)\?=$/', $w, $m), $w);
+        ok(preg_match('//u', base64_decode($m[1])) === 1, 'kein zerteiltes Zeichen');
+        $decoded .= base64_decode($m[1]);
+    }
+    eq($decoded, $text);
+});
+
+check('smtp_settings verlangt vollständige Konfiguration', function () {
+    $c = ['smtp_host' => 'smtp.strato.de', 'smtp_username' => 'u@example.org', 'smtp_password' => 'x'];
+    eq(smtp_settings($c, 'u@example.org')['port'], 587);
+    foreach ([['smtp_password' => ''], ['smtp_host' => 'a b'], ['smtp_port' => 0], ['smtp_ca_file' => '/nicht/da']] as $bad) {
+        try { smtp_settings([...$c, ...$bad], 'u@example.org'); throw new Exception('keine Exception: ' . json_encode($bad)); }
+        catch (RuntimeException $e) { ok(str_contains($e->getMessage(), 'SMTP ist nicht vollständig'), json_encode($bad)); }
+    }
+});
+
 // ---- End-to-end over HTTP ----
 
 try {
@@ -131,12 +195,15 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
     $docroot = sys_get_temp_dir() . '/fffeedback-docroot';
     @mkdir($docroot);
     if (!file_exists("$docroot/umfrage")) symlink(realpath(__DIR__ . '/../public'), "$docroot/umfrage");
-    $server = proc_open([PHP_BINARY, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-S', '127.0.0.1:8124', '-t', $docroot], [1 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a'], 2 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a']], $pipes);
+    $server = proc_open([PHP_BINARY, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-d', 'disable_functions=set_time_limit', '-S', '127.0.0.1:8124', '-t', $docroot], [1 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a'], 2 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a']], $pipes);
+    // Same app with mail() disabled by the "hoster" and no mail_log
+    $noMail = proc_open([PHP_BINARY, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-d', 'disable_functions=set_time_limit,mail', '-S', '127.0.0.1:8125', '-t', $docroot], [1 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a'], 2 => ['file', sys_get_temp_dir() . '/fffeedback-test-server.log', 'a']], $pipes, null, [...getenv(), 'FFF_NO_MAIL_LOG' => '1']);
     try {
-        for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', 8124); $i++) usleep(100_000);
+        for ($i = 0; $i < 50 && !(@fsockopen('127.0.0.1', 8124) && @fsockopen('127.0.0.1', 8125)); $i++) usleep(100_000);
 
         $cookie = '';
-        $http = function (string $method, string $path, $body = null) use (&$cookie): array {
+        $port = 8124;
+        $http = function (string $method, string $path, $body = null) use (&$cookie, &$port): array {
             $headers = $cookie ? ["Cookie: $cookie"] : [];
             if (is_array($body)) {
                 $body = http_build_query($body);
@@ -145,7 +212,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
                 $headers[] = 'Content-Type: application/json';
             }
             $ctx = stream_context_create(['http' => ['method' => $method, 'header' => implode("\r\n", $headers), 'content' => $body ?? '', 'ignore_errors' => true, 'follow_location' => 0]]);
-            $res = file_get_contents('http://127.0.0.1:8124/umfrage/' . $path, false, $ctx);
+            $res = file_get_contents("http://127.0.0.1:$port/umfrage/" . $path, false, $ctx);
             if (preg_match('/(Warning|Notice|Deprecated|Fatal error)(<\/b>)?: /', (string) $res, $m)) throw new RuntimeException("PHP-$m[1] in $path: " . strip_tags($res));
             foreach ($http_response_header as $h) if (preg_match('/^Set-Cookie: (fffadmin=[^;]+)/i', $h, $m)) $cookie = $m[1];
             return [(int) explode(' ', $http_response_header[0])[1], $res, implode("\n", $http_response_header)];
@@ -248,6 +315,19 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         eq(count($mails()), 9, 'nur eine Erinnerung');
         ok(str_starts_with($last()['subject'], 'Erinnerung'), 'Erinnerungstext');
 
+        // mail() disabled by the hoster: readable error page instead of a blank 500 (same session, other server)
+        $port = 8125;
+        $serverLog = sys_get_temp_dir() . '/fffeedback-test-server.log';
+        clearstatcache();
+        $logSize = filesize($serverLog);
+        [$status, $html] = $http('POST', 'admin.php', ['action' => 'invite', 's' => $slug, 'emails' => 'ohnemail@example.org', 'csrf' => $csrf]);
+        eq($status, 500, 'Status bei deaktiviertem mail()');
+        ok(str_contains($html, 'Fehler: Die PHP-Funktion mail() ist beim Hoster deaktiviert') && str_contains($html, 'lib.php:'), 'Fehlerseite für Admins');
+        $logged = file_get_contents($serverLog, false, null, $logSize);
+        ok(str_contains($logged, 'RuntimeException: Die PHP-Funktion mail()') && !str_contains($logged, '#0 '), "Log ohne Stacktrace: $logged");
+        $port = 8124;
+        q('DELETE FROM invitations WHERE email = ?', ['ohnemail@example.org']);
+
         // Close
         $post(['action' => 'close', 's' => $slug]);
         ok(str_contains($admin("?s=$slug"), 'Bitte das Beenden bestätigen'));
@@ -266,6 +346,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         eq(count($mails()), 9, 'keine Einladungen nach Ende');
     } finally {
         proc_terminate($server);
+        proc_terminate($noMail);
         @unlink($mailLog);
     }
 });
