@@ -119,7 +119,7 @@ Ohne Konfiguration wird der Workflow übersprungen. Einrichtung:
    |---|---|
    | `DEPLOY_URL` | `sftp://ssh.example-hoster.de/html/umfrage` oder `ftp://ftp.example-hoster.de/umfrage` |
    | `DEPLOY_USER` | FTP- bzw. SFTP-Benutzer des Hosters |
-   | `DEPLOY_KNOWN_HOSTS` | nur bei `sftp://`, Pflicht: Ausgabe von `ssh-keyscan ssh.example-hoster.de`. Am besten mit dem Fingerabdruck vergleichen, den der Hoster veröffentlicht |
+   | `DEPLOY_KNOWN_HOSTS` | nur bei `sftp://`, Pflicht: Ausgabe von `ssh-keyscan ssh.example-hoster.de`, also Zeilen der Form `host ssh-ed25519 AAAA…`. Am besten mit dem Fingerabdruck vergleichen, den der Hoster veröffentlicht (`ssh-keygen -lf datei`). Meldet `ssh-keyscan` nur `unsupported KEX method` (älteres OpenSSH unter Windows), stattdessen `docker run --rm alpine sh -c "apk add -q openssh-client && ssh-keyscan ssh.example-hoster.de"` verwenden |
    | `SITE_URL` (optional) | `https://www.feuerwehr-example.de/umfrage`. Danach wird geprüft, ob `admin.php` erreichbar ist |
 
    Der Pfad in `DEPLOY_URL` ist der Zielordner. Wie er genau heißt, steht in den FTP-Zugangsdaten des Hosters.
