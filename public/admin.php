@@ -6,7 +6,8 @@ require __DIR__ . '/lib.php';
 // Instead of a blank 500 page: log the error and show logged-in admins what went wrong.
 // Registered before any startup work (config, session) so that those failures are caught too.
 set_exception_handler(function (Throwable $e): never {
-    error_log((string) $e);
+    // No stack trace: with zend.exception_ignore_args=Off it would contain arguments such as the SMTP password.
+    error_log(sprintf('%s: %s in %s:%d', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()));
     http_response_code(500);
     page('Fehler', '<p class="warn">' . (empty($_SESSION['admin'])
         ? 'Ein Fehler ist aufgetreten.'

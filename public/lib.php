@@ -291,7 +291,7 @@ function mime_header(string $text): string
     return implode("\r\n ", array_map(fn($w) => '=?UTF-8?B?' . base64_encode($w) . '?=', $words));
 }
 
-function smtp_settings(array $c, string $envelope): array
+function smtp_settings(#[\SensitiveParameter] array $c, string $envelope): array
 {
     $s = [
         'host' => trim((string) $c['smtp_host']),
@@ -309,7 +309,7 @@ function smtp_settings(array $c, string $envelope): array
     return $s;
 }
 
-function smtp_write($socket, string $data): bool
+function smtp_write($socket, #[\SensitiveParameter] string $data): bool
 {
     while ($data !== '') {
         $written = fwrite($socket, $data);
@@ -329,13 +329,13 @@ function smtp_reply($socket, int $expected): bool
     return false;
 }
 
-function smtp_command($socket, string $command, int $expected): bool
+function smtp_command($socket, #[\SensitiveParameter] string $command, int $expected): bool
 {
     return smtp_write($socket, "$command\r\n") && smtp_reply($socket, $expected);
 }
 
 // Opens an authenticated session. Credentials are sent only after certificate-verified STARTTLS.
-function smtp_connect(array $s)
+function smtp_connect(#[\SensitiveParameter] array $s)
 {
     $ssl = ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $s['host']];
     if ($s['ca_file'] !== '') $ssl['cafile'] = $s['ca_file'];
@@ -361,7 +361,7 @@ function smtp_connect(array $s)
 // One authenticated session is reused for all mails of a request (invite/remind send many).
 // Returns false if the server rejects a single recipient; throws on transport or login failures so that a batch stops
 // instead of waiting for a timeout per recipient.
-function smtp_send(array $s, string $to, string $subject, string $text, string $from): bool
+function smtp_send(#[\SensitiveParameter] array $s, string $to, string $subject, string $text, string $from): bool
 {
     static $sessions = [];
     $key = json_encode($s);

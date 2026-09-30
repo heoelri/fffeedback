@@ -316,9 +316,14 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
 
         // mail() disabled by the hoster: readable error page instead of a blank 500 (same session, other server)
         $port = 8125;
+        $serverLog = sys_get_temp_dir() . '/fffeedback-test-server.log';
+        clearstatcache();
+        $logSize = filesize($serverLog);
         [$status, $html] = $http('POST', 'admin.php', ['action' => 'invite', 's' => $slug, 'emails' => 'ohnemail@example.org', 'csrf' => $csrf]);
         eq($status, 500, 'Status bei deaktiviertem mail()');
         ok(str_contains($html, 'Fehler: Die PHP-Funktion mail() ist beim Hoster deaktiviert') && str_contains($html, 'lib.php:'), 'Fehlerseite für Admins');
+        $logged = file_get_contents($serverLog, false, null, $logSize);
+        ok(str_contains($logged, 'RuntimeException: Die PHP-Funktion mail()') && !str_contains($logged, '#0 '), "Log ohne Stacktrace: $logged");
         $port = 8124;
         q('DELETE FROM invitations WHERE email = ?', ['ohnemail@example.org']);
 
