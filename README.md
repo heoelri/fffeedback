@@ -122,7 +122,7 @@ Ohne Konfiguration wird der Workflow übersprungen. Einrichtung:
    | `DEPLOY_KNOWN_HOSTS` | nur bei `sftp://`, Pflicht: Ausgabe von `ssh-keyscan ssh.example-hoster.de`, also Zeilen der Form `host ssh-ed25519 AAAA…`. Am besten mit dem Fingerabdruck vergleichen, den der Hoster veröffentlicht (`ssh-keygen -lf datei`). Meldet `ssh-keyscan` nur `unsupported KEX method` (älteres OpenSSH unter Windows), stattdessen `docker run --rm alpine sh -c "apk add -q openssh-client && ssh-keyscan ssh.example-hoster.de"` verwenden |
    | `SITE_URL` (optional) | `https://www.feuerwehr-example.de/umfrage`. Danach wird geprüft, ob `admin.php` erreichbar ist |
 
-   Der Pfad in `DEPLOY_URL` ist der Zielordner. Wie er genau heißt, steht in den FTP-Zugangsdaten des Hosters.
+   Der Pfad in `DEPLOY_URL` ist der Zielordner, so wie ihn ein FTP-Programm nach dem Anmelden anzeigt. Beispiel: `sftp://…/umfrage` lädt nach `/umfrage`, das bei Bedarf samt übergeordneter Ordner angelegt wird. Die Anwendung läuft in jedem Unterordner. Wichtig ist nur, dass `base_url` in `config.php` auf genau diesen Ordner zeigt, z. B. `https://www.feuerwehr-example.de/umfrage`, sonst stimmen die Links in den Einladungen nicht.
 
 Gut zu wissen:
 
@@ -183,7 +183,7 @@ node --test 'tests/*.test.mjs'           # Browser-Logik und Gleichheit mit dem 
 node tools/catalog.mjs public/surveys/dahlbruch-2026.json > docs/fragenkatalog.md
 ```
 
-Die Datenbank lässt sich über `DB_DSN`, `DB_USER` und `DB_PASS` anpassen, z. B. `DB_DSN='mysql:host=127.0.0.1;port=13306;dbname=fff_test;charset=utf8mb4'`. Der Datenbankname muss „test“ enthalten, weil die Tests die Tabellen löschen. Ist keine Datenbank erreichbar, wird der Ende-zu-Ende-Test übersprungen. In CI zählt das als Fehler.
+Die Datenbank lässt sich über `DB_DSN`, `DB_USER` und `DB_PASS` anpassen, z. B. `DB_DSN='mysql:host=127.0.0.1;port=13306;dbname=fff_test;charset=utf8mb4'`. Der Datenbankname muss „test“ enthalten, weil die Tests die Tabellen löschen. Der Ende-zu-Ende-Test startet die Anwendung unter `http://127.0.0.1:8124/umfrage/`, also wie auf einem Webspace in einem Unterordner. Ist keine Datenbank erreichbar, wird der Ende-zu-Ende-Test übersprungen. In CI zählt das als Fehler.
 
 **Lokal ausprobieren:**
 
