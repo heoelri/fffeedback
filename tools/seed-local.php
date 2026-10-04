@@ -22,5 +22,5 @@ $email = $argv[1] ?? 'test@example.org';
 invite($survey, [$email]);
 
 echo "Testnutzer: $email\n";
-echo "Umfrage-Link: " . rtrim(config()['base_url'], '/') . '/?t=' . token_for($def['slug'], $email) . "\n";
+echo "Umfrage-Link: " . rtrim(config()['base_url'], '/') . '/index.php?t=' . token_for($def['slug'], $email) . "\n";
 echo "Admin: " . rtrim(config()['base_url'], '/') . "/admin.php (Passwort: " . config()['admin_password'] . ")\n";
