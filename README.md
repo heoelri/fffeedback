@@ -138,13 +138,13 @@ Gut zu wissen:
 
 ## Ablauf einer Umfrage
 
-1. **Vorab testen:** 2–3 Kameradinnen und Kameraden füllen die Umfrage testweise aus. Danach die Tabellen in der Datenbank löschen (z. B. mit phpMyAdmin). Sie werden beim nächsten Aufruf von `admin.php` neu angelegt.
+1. **Vorab testen:** 2–3 Kameradinnen und Kameraden füllen die Umfrage testweise aus. Danach in `admin.php` bei der Umfrage „Antworten und Teilnehmer löschen“ wählen.
 2. **Importieren:** In `admin.php` die Datei `dahlbruch-2026.json` auswählen und auf „Importieren“ klicken. Solange die Umfrage läuft, übernimmt ein erneuter Import Textänderungen.
 3. **Einladen:** Die E-Mail-Adressen einfügen, eine pro Zeile oder durch Komma getrennt, und auf „Einladungen senden“ klicken.
 4. **Erneut einladen:** Hat jemand die Mail nicht bekommen oder gelöscht, in der Liste auf „Erneut einladen“ klicken.
 5. **Erinnern:** Nach ca. 1 und 2 Wochen das Häkchen setzen und auf „Erinnerung an … Personen senden“ klicken. Ein versehentlicher Doppelklick verschickt nichts doppelt.
 6. **Beenden:** Nach ca. 3–4 Wochen die Umfrage beenden. Danach sind keine Antworten mehr möglich, alle E-Mail-Adressen werden gelöscht und die Auswertung wird freigeschaltet.
-7. **Auswerten:** Die Ergebnisse vorstellen und Maßnahmen festlegen. Mittelwerte gelten für Stufe 1 = beste Antwort bis 5 = schlechteste Antwort. „Als CSV herunterladen“ exportiert die Zahlen (ohne Freitexte) für Excel, z. B. für den Vergleich mit dem Vorjahr.
+7. **Auswerten:** Die Ergebnisse als PDF herunterladen oder als CSV (ohne Freitexte) in Excel weiterverarbeiten. Mittelwerte gelten für Stufe 1 = beste Antwort bis 5 = schlechteste Antwort.
 
 ## Neue Umfrage erstellen
 

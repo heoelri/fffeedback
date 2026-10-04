@@ -110,6 +110,15 @@ check('aggregate: Zählung, Mittelwert, Mindestgruppengröße', function () use 
     eq(aggregate($survey, $rows, ['q' => 'geschlecht', 'v' => 'Weiblich'])['n'], 11, 'kein erlaubter Filter');
 });
 
+check('PDF-Bericht enthält Auswertung und gültige PDF-Struktur', function () use ($survey) {
+    $rows = array_fill(0, 5, ['answers' => ['gesamt_bewertung' => 2, 'allg_gut' => 'Läuft gut ' . str_repeat('W', 81)], 'notes' => ['gesamt_bewertung' => 'Weiter so']]);
+    $pdf = report_pdf($survey, aggregate($survey, $rows));
+    ok(str_starts_with($pdf, '%PDF-1.4') && str_ends_with($pdf, "%%EOF\n"), 'PDF-Rahmen');
+    ok(str_contains($pdf, '/Type /Catalog') && str_contains($pdf, '/Type /Page') && str_contains($pdf, '/BaseFont /Courier') && str_contains($pdf, 'xref'), 'PDF-Objekte');
+    ok(str_contains($pdf, '5 Antworten') && str_contains($pdf, 'L' . chr(228) . 'uft gut') && str_contains($pdf, 'Weiter so'), 'Berichtsinhalt');
+    ok(!str_contains($pdf, str_repeat('W', 81)), 'lange Zeilen werden umgebrochen');
+});
+
 check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
     $dir = sys_get_temp_dir() . '/fff-smtp-' . bin2hex(random_bytes(4));
     mkdir($dir);
@@ -292,6 +301,9 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         $html = $admin("?s=$slug");
         ok(str_contains($html, 'erst nach dem Beenden') && !str_contains($html, 'Text 5'), 'Auswertung gesperrt');
         ok(str_contains($html, 'abgesendet') && str_contains($html, 'Erneut einladen'), 'Einladungsliste');
+        ok(str_contains($html, 'Antworten und Teilnehmer löschen'), 'Daten löschen angeboten');
+        [, , $headers] = $http('GET', "admin.php?s=$slug&pdf=1");
+        ok(!str_contains($headers, 'application/pdf'), 'kein PDF vor Ende');
 
         // Re-invite
         $p6 = (int) q('SELECT id FROM invitations WHERE email = ?', ['p6@example.org'])->fetchColumn();
@@ -337,6 +349,9 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         ok(str_contains($html, 'Ø 4,0 (1 = sehr gut … 5 = sehr schlecht)'), 'Mittelwert mit Skalenrichtung');
         [, $csv, $headers] = $http('GET', "admin.php?s=$slug&csv=1");
         ok(str_contains($headers, 'text/csv') && str_contains($csv, 'Alle;Gesamteindruck;gesamt_bewertung;') && !str_contains($csv, 'Text 5'), 'CSV-Export ohne Freitexte');
+        [, $pdf, $headers] = $http('GET', "admin.php?s=$slug&pdf=1");
+        ok(str_contains($headers, 'application/pdf') && str_starts_with($pdf, '%PDF-1.4') && str_ends_with($pdf, "%%EOF\n")
+            && str_contains($pdf, '/Type /Page') && str_contains($pdf, 'Text 5'), 'PDF-Bericht mit Freitexten');
         ok(!str_contains($html, 'example.org'), 'keine E-Mail-Adressen mehr');
         ok(str_contains($admin('?' . http_build_query(['s' => $slug, 'q' => 'alter', 'v' => '18–29'])), 'Zu wenige Antworten'), 'Mindestgruppengröße');
         eq((int) q("SELECT COUNT(*) FROM invitations WHERE email LIKE '%@%'")->fetchColumn(), 0);
@@ -344,6 +359,15 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         eq($api($tokens[6], 'submit', ['answers' => []])[0], 409);
         $post(['action' => 'invite', 's' => $slug, 'emails' => 'neu@example.org']);
         eq(count($mails()), 9, 'keine Einladungen nach Ende');
+
+        // Clear responses and participants, but keep the survey definition.
+        $post(['action' => 'clear', 's' => $slug]);
+        ok(str_contains($admin("?s=$slug"), 'Bitte das Löschen bestätigen'));
+        eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn()], [6, 7]);
+        $post(['action' => 'clear', 's' => $slug, 'confirm' => '1']);
+        eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn()], [0, 0]);
+        eq((int) q('SELECT COUNT(*) FROM surveys WHERE slug = ?', [$slug])->fetchColumn(), 1, 'Umfrage bleibt erhalten');
+        ok(str_contains($admin("?s=$slug"), 'Alle Antworten und Teilnehmer wurden gelöscht.'));
     } finally {
         proc_terminate($server);
         proc_terminate($noMail);
