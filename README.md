@@ -138,7 +138,7 @@ Gut zu wissen:
 
 ## Ablauf einer Umfrage
 
-1. **Vorab testen:** 2–3 Kameradinnen und Kameraden füllen die Umfrage testweise aus. Danach in `admin.php` „Umfrage vollständig löschen“ wählen und die Umfrage neu importieren.
+1. **Vorab testen:** 2–3 Kameradinnen und Kameraden füllen die Umfrage testweise aus. Danach in `admin.php` „Umfrage vollständig löschen“ wählen und mit Schritt 2 neu starten.
 2. **Importieren:** In `admin.php` die Datei `dahlbruch-2026.json` auswählen und auf „Importieren“ klicken. Solange die Umfrage läuft, übernimmt ein erneuter Import Textänderungen.
 3. **Einladen:** Die E-Mail-Adressen einfügen, eine pro Zeile oder durch Komma getrennt, und auf „Einladungen senden“ klicken.
 4. **Erneut einladen:** Hat jemand die Mail nicht bekommen oder gelöscht, in der Liste auf „Erneut einladen“ klicken.
