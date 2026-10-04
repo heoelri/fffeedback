@@ -59,12 +59,13 @@ function survey_files(): array
     return glob(__DIR__ . '/surveys/*.json') ?: [];
 }
 
-function clear_survey_data(int $surveyId): void
+function delete_survey(int $surveyId): void
 {
     db()->beginTransaction();
     try {
         q('DELETE FROM invitations WHERE survey_id = ?', [$surveyId]);
         q('DELETE FROM responses WHERE survey_id = ?', [$surveyId]);
+        q('DELETE FROM surveys WHERE id = ?', [$surveyId]);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
@@ -134,8 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $back = '?s=' . urlencode($survey['slug']);
     if ($action === 'clear') {
         if (empty($_POST['confirm'])) redirect($back, 'Bitte das Löschen bestätigen.');
-        clear_survey_data((int) $survey['id']);
-        redirect($back, 'Alle Antworten und Teilnehmer wurden gelöscht.');
+        delete_survey((int) $survey['id']);
+        redirect('', 'Die Umfrage mit allen Antworten und Teilnehmern wurde gelöscht.');
     }
     if ($survey['closed']) redirect($back, 'Die Umfrage ist beendet.');
     // Many hosters disable set_time_limit; since PHP 8 calling it then is a fatal error, even with @.
@@ -198,8 +199,8 @@ $html = '<p><a href="admin.php">← Übersicht</a></p><h1>' . esc($def['title'])
     . "<tr><td>Abgesendet</td><td>$submitted (" . pct($submitted, $invited) . " %) <progress max=\"$invited\" value=\"$submitted\"></progress></td></tr>"
     . "<tr><td>Erinnerungen versendet</td><td>{$s['reminders']}</td></tr>"
     . '<tr><td>Status</td><td>' . ($s['closed'] ? 'beendet' : 'läuft') . '</td></tr></table></section>'
-    . '<section class="card"><h2>Daten löschen</h2><p class="muted">Entfernt alle Antworten und Teilnehmer dieser Umfrage. Die Umfrage selbst bleibt erhalten.</p>'
-    . action_form($slug, 'clear', 'Antworten und Teilnehmer löschen', '<p><label><input type="checkbox" name="confirm" value="1" required> Ja, Daten endgültig löschen</label></p>', 'secondary')
+    . '<section class="card"><h2>Umfrage löschen</h2><p class="muted">Entfernt die Umfrage mit allen Antworten und Teilnehmern. Danach kann sie neu importiert und gestartet werden.</p>'
+    . action_form($slug, 'clear', 'Umfrage vollständig löschen', '<p><label><input type="checkbox" name="confirm" value="1" required> Ja, Umfrage und Daten endgültig löschen</label></p>', 'secondary')
     . '</section>';
 
 if (!$s['closed']) {

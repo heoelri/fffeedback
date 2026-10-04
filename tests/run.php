@@ -301,7 +301,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         $html = $admin("?s=$slug");
         ok(str_contains($html, 'erst nach dem Beenden') && !str_contains($html, 'Text 5'), 'Auswertung gesperrt');
         ok(str_contains($html, 'abgesendet') && str_contains($html, 'Erneut einladen'), 'Einladungsliste');
-        ok(str_contains($html, 'Antworten und Teilnehmer löschen'), 'Daten löschen angeboten');
+        ok(str_contains($html, 'Umfrage vollständig löschen'), 'Umfrage löschen angeboten');
         [, , $headers] = $http('GET', "admin.php?s=$slug&pdf=1");
         ok(!str_contains($headers, 'application/pdf'), 'kein PDF vor Ende');
 
@@ -360,14 +360,18 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         $post(['action' => 'invite', 's' => $slug, 'emails' => 'neu@example.org']);
         eq(count($mails()), 9, 'keine Einladungen nach Ende');
 
-        // Clear responses and participants, but keep the survey definition.
+        // Delete the complete survey and import it again as a fresh run.
         $post(['action' => 'clear', 's' => $slug]);
         ok(str_contains($admin("?s=$slug"), 'Bitte das Löschen bestätigen'));
         eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn()], [6, 7]);
-        $post(['action' => 'clear', 's' => $slug, 'confirm' => '1']);
-        eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn()], [0, 0]);
-        eq((int) q('SELECT COUNT(*) FROM surveys WHERE slug = ?', [$slug])->fetchColumn(), 1, 'Umfrage bleibt erhalten');
-        ok(str_contains($admin("?s=$slug"), 'Alle Antworten und Teilnehmer wurden gelöscht.'));
+        eq($post(['action' => 'clear', 's' => $slug, 'confirm' => '1']), 'admin.php');
+        eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn(),
+            (int) q('SELECT COUNT(*) FROM surveys')->fetchColumn()], [0, 0, 0]);
+        ok(str_contains($admin(), 'Die Umfrage mit allen Antworten und Teilnehmern wurde gelöscht.'));
+        eq($post(['action' => 'import', 'file' => 'dahlbruch-2026.json']), "admin.php?s=$slug");
+        $fresh = q('SELECT id, closed FROM surveys WHERE slug = ?', [$slug])->fetch();
+        eq([(int) $fresh['closed'], (int) q('SELECT COUNT(*) FROM invitations WHERE survey_id = ?', [$fresh['id']])->fetchColumn(),
+            (int) q('SELECT COUNT(*) FROM responses WHERE survey_id = ?', [$fresh['id']])->fetchColumn()], [0, 0, 0], 'Neuimport startet leer');
     } finally {
         proc_terminate($server);
         proc_terminate($noMail);
