@@ -111,11 +111,12 @@ check('aggregate: Zählung, Mittelwert, Mindestgruppengröße', function () use 
 });
 
 check('PDF-Bericht enthält Auswertung und gültige PDF-Struktur', function () use ($survey) {
-    $rows = array_fill(0, 5, ['answers' => ['gesamt_bewertung' => 2, 'allg_gut' => 'Läuft gut'], 'notes' => ['gesamt_bewertung' => 'Weiter so']]);
+    $rows = array_fill(0, 5, ['answers' => ['gesamt_bewertung' => 2, 'allg_gut' => 'Läuft gut ' . str_repeat('W', 81)], 'notes' => ['gesamt_bewertung' => 'Weiter so']]);
     $pdf = report_pdf($survey, aggregate($survey, $rows));
     ok(str_starts_with($pdf, '%PDF-1.4') && str_ends_with($pdf, "%%EOF\n"), 'PDF-Rahmen');
-    ok(str_contains($pdf, '/Type /Catalog') && str_contains($pdf, '/Type /Page') && str_contains($pdf, 'xref'), 'PDF-Objekte');
+    ok(str_contains($pdf, '/Type /Catalog') && str_contains($pdf, '/Type /Page') && str_contains($pdf, '/BaseFont /Courier') && str_contains($pdf, 'xref'), 'PDF-Objekte');
     ok(str_contains($pdf, '5 Antworten') && str_contains($pdf, 'L' . chr(228) . 'uft gut') && str_contains($pdf, 'Weiter so'), 'Berichtsinhalt');
+    ok(!str_contains($pdf, str_repeat('W', 81)), 'lange Zeilen werden umgebrochen');
 });
 
 check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {

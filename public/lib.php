@@ -280,13 +280,13 @@ function report_pdf(array $survey, array $report, ?array $filter = null): string
     foreach ($lines as $line) {
         $converted = function_exists('iconv') ? iconv('UTF-8', 'Windows-1252//TRANSLIT', $line) : false;
         $line = $converted === false ? preg_replace('/[^\x20-\x7E]/', '?', $line) : $converted;
-        foreach (explode("\n", wordwrap((string) $line, 95, "\n", true)) as $wrapped) $encoded[] = $wrapped;
+        foreach (explode("\n", wordwrap((string) $line, 80, "\n", true)) as $wrapped) $encoded[] = $wrapped;
     }
     $pages = array_chunk($encoded, 55) ?: [[]];
     $objects = [
         1 => '<< /Type /Catalog /Pages 2 0 R >>',
         2 => 'PAGES',
-        3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+        3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>',
     ];
     $kids = [];
     foreach ($pages as $i => $pageLines) {

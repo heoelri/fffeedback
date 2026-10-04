@@ -63,8 +63,8 @@ function clear_survey_data(int $surveyId): void
 {
     db()->beginTransaction();
     try {
-        q('DELETE FROM responses WHERE survey_id = ?', [$surveyId]);
         q('DELETE FROM invitations WHERE survey_id = ?', [$surveyId]);
+        q('DELETE FROM responses WHERE survey_id = ?', [$surveyId]);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
