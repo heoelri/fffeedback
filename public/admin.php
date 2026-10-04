@@ -59,6 +59,19 @@ function survey_files(): array
     return glob(__DIR__ . '/surveys/*.json') ?: [];
 }
 
+function clear_survey_data(int $surveyId): void
+{
+    db()->beginTransaction();
+    try {
+        q('DELETE FROM responses WHERE survey_id = ?', [$surveyId]);
+        q('DELETE FROM invitations WHERE survey_id = ?', [$surveyId]);
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+}
+
 const STATS = 'SELECT s.id, s.slug, s.definition, s.closed, COUNT(i.id) AS invited,
     COALESCE(SUM(i.started), 0) AS started, COALESCE(SUM(i.submitted), 0) AS submitted, COALESCE(SUM(i.reminders), 0) AS reminders
     FROM surveys s LEFT JOIN invitations i ON i.survey_id = s.id';
@@ -119,6 +132,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $survey = q('SELECT id, slug, definition, closed FROM surveys WHERE slug = ?', [(string) ($_POST['s'] ?? '')])->fetch();
     if (!$survey) redirect('', 'Umfrage nicht gefunden.');
     $back = '?s=' . urlencode($survey['slug']);
+    if ($action === 'clear') {
+        if (empty($_POST['confirm'])) redirect($back, 'Bitte das Löschen bestätigen.');
+        clear_survey_data((int) $survey['id']);
+        redirect($back, 'Alle Antworten und Teilnehmer wurden gelöscht.');
+    }
     if ($survey['closed']) redirect($back, 'Die Umfrage ist beendet.');
     // Many hosters disable set_time_limit; since PHP 8 calling it then is a fatal error, even with @.
     if (function_exists('set_time_limit')) set_time_limit(300);
@@ -179,7 +197,10 @@ $html = '<p><a href="admin.php">← Übersicht</a></p><h1>' . esc($def['title'])
     . "<tr><td>Begonnen</td><td>$started (" . pct($started, $invited) . ' %)</td></tr>'
     . "<tr><td>Abgesendet</td><td>$submitted (" . pct($submitted, $invited) . " %) <progress max=\"$invited\" value=\"$submitted\"></progress></td></tr>"
     . "<tr><td>Erinnerungen versendet</td><td>{$s['reminders']}</td></tr>"
-    . '<tr><td>Status</td><td>' . ($s['closed'] ? 'beendet' : 'läuft') . '</td></tr></table></section>';
+    . '<tr><td>Status</td><td>' . ($s['closed'] ? 'beendet' : 'läuft') . '</td></tr></table></section>'
+    . '<section class="card"><h2>Daten löschen</h2><p class="muted">Entfernt alle Antworten und Teilnehmer dieser Umfrage. Die Umfrage selbst bleibt erhalten.</p>'
+    . action_form($slug, 'clear', 'Antworten und Teilnehmer löschen', '<p><label><input type="checkbox" name="confirm" value="1" required> Ja, Daten endgültig löschen</label></p>', 'secondary')
+    . '</section>';
 
 if (!$s['closed']) {
     $open = $invited - $submitted;
@@ -242,9 +263,18 @@ if (isset($_GET['csv'])) {
     exit;
 }
 
+if (isset($_GET['pdf'])) {
+    $pdf = report_pdf($def, $r, $filter);
+    header('Content-Type: application/pdf');
+    header("Content-Disposition: attachment; filename=\"{$s['slug']}.pdf\"");
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
+    exit;
+}
+
 $self = $base . ($r['filtered'] ? '&amp;q=' . urlencode($filter['q']) . '&amp;v=' . urlencode($filter['v']) : '');
 $list = fn($items) => $items ? '<ul class="texts">' . implode('', array_map(fn($t) => '<li>' . esc($t) . '</li>', $items)) . '</ul>' : '';
-$html .= "<p><b>{$r['n']} Antworten</b> in dieser Auswahl · <a href=\"$self&amp;csv=1\">Als CSV herunterladen</a></p>";
+$html .= "<p><b>{$r['n']} Antworten</b> in dieser Auswahl · <a href=\"$self&amp;pdf=1\">Als PDF herunterladen</a> · <a href=\"$self&amp;csv=1\">Als CSV für Excel herunterladen</a></p>";
 if ($r['filtered']) $html .= '<p class="muted">Freitexte und Kommentare stehen nur unter „Alle Antworten“. Sonst ließen sie sich über mehrere Filter einer Person zuordnen.</p>';
 $section = null;
 foreach ($r['questions'] as $x) {

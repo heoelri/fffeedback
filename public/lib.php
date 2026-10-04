@@ -251,6 +251,67 @@ function aggregate(array $survey, array $responses, ?array $filter = null): arra
     return ['n' => count($rows), 'filtered' => $active, 'questions' => $result];
 }
 
+function report_pdf(array $survey, array $report, ?array $filter = null): string
+{
+    $titles = array_column($survey['sections'], 'title', 'id');
+    $scope = $report['filtered'] ? "{$filter['q']} = {$filter['v']}" : 'Alle Antworten';
+    $lines = [$survey['title'], "Auswahl: $scope", "{$report['n']} Antworten", ''];
+    $section = null;
+    foreach ($report['questions'] as $x) {
+        if ($x['q']['section'] !== $section) {
+            $section = $x['q']['section'];
+            $lines[] = '';
+            $lines[] = $titles[$section];
+        }
+        $mean = ($x['mean'] ?? null) === null ? '' : ' | Mittelwert: ' . number_format($x['mean'], 2, ',', '');
+        $lines[] = "{$x['q']['text']} ({$x['answered']} Antworten$mean)";
+        if (isset($x['texts'])) {
+            foreach ($x['texts'] as $text) $lines[] = "- $text";
+        } else {
+            foreach ($x['counts'] as $count) {
+                $percent = $x['answered'] ? (int) round($count['count'] / $x['answered'] * 100) : 0;
+                $lines[] = "- {$count['label']}: {$count['count']} ($percent %)";
+            }
+            foreach ($x['notes'] as $note) $lines[] = "- Kommentar: $note";
+        }
+    }
+
+    $encoded = [];
+    foreach ($lines as $line) {
+        $converted = function_exists('iconv') ? iconv('UTF-8', 'Windows-1252//TRANSLIT', $line) : false;
+        $line = $converted === false ? preg_replace('/[^\x20-\x7E]/', '?', $line) : $converted;
+        foreach (explode("\n", wordwrap((string) $line, 95, "\n", true)) as $wrapped) $encoded[] = $wrapped;
+    }
+    $pages = array_chunk($encoded, 55) ?: [[]];
+    $objects = [
+        1 => '<< /Type /Catalog /Pages 2 0 R >>',
+        2 => 'PAGES',
+        3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    ];
+    $kids = [];
+    foreach ($pages as $i => $pageLines) {
+        $pageId = 4 + $i * 2;
+        $streamId = $pageId + 1;
+        $kids[] = "$pageId 0 R";
+        $text = implode(" Tj T*\n", array_map(fn($line) => '(' . str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $line) . ')', $pageLines)) . ' Tj';
+        $stream = "BT /F1 10 Tf 45 800 Td 13 TL\n$text\nET";
+        $objects[$pageId] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents $streamId 0 R >>";
+        $objects[$streamId] = "<< /Length " . strlen($stream) . " >>\nstream\n$stream\nendstream";
+    }
+    $objects[2] = '<< /Type /Pages /Count ' . count($pages) . ' /Kids [' . implode(' ', $kids) . '] >>';
+    ksort($objects);
+    $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+    $offsets = [0];
+    foreach ($objects as $id => $object) {
+        $offsets[$id] = strlen($pdf);
+        $pdf .= "$id 0 obj\n$object\nendobj\n";
+    }
+    $xref = strlen($pdf);
+    $pdf .= 'xref' . "\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+    foreach (array_slice($offsets, 1) as $offset) $pdf .= sprintf("%010d 00000 n \n", $offset);
+    return $pdf . 'trailer << /Size ' . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
+}
+
 // ---- Mail & invitations ----
 
 // Sends via authenticated SMTP when smtp_host is configured (same mechanism as heoelri/ebmanager), otherwise via mail().
