@@ -8,6 +8,12 @@ import { sanitize, questions, isNegative } from '../public/logic.js';
 
 const survey = JSON.parse(fs.readFileSync(new URL('../public/surveys/dahlbruch-2026.json', import.meta.url)));
 
+test('vollständige Auswertungsdaten bleiben im Browser unverändert gültig', () => {
+  const rows = JSON.parse(execFileSync('php', [fileURLToPath(new URL('report-data.php', import.meta.url))]));
+  assert.equal(rows.length, 24);
+  for (const row of rows) assert.deepEqual(sanitize(survey, row), row);
+});
+
 test('logic.js und lib.php bereinigen Antworten identisch', () => {
   const chain = { sections: [{ id: 's', title: 'S', freeText: false, questions: [
     { id: 'a', type: 'single', text: 'A', options: ['Ja', 'Nein'] },

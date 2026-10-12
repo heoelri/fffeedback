@@ -55,6 +55,8 @@ jobs:
           expected_files=(
             01-umfrage-fragen.png
             01-umfrage-start.png
+            02-admin-auswertung-gesperrt.png
+            02-admin-auswertung-gruppe.png
             02-admin-auswertung.png
             02-admin-login.png
             02-admin-uebersicht.png

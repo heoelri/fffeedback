@@ -6,6 +6,7 @@ putenv('FFF_CONFIG=' . __DIR__ . '/config.php');
 // The end-to-end test serves the app from a subfolder, as on a typical webspace.
 putenv('FFF_BASE_URL=http://127.0.0.1:8124/umfrage');
 require __DIR__ . '/../public/lib.php';
+require __DIR__ . '/report-data.php';
 
 $failures = 0;
 function check(string $name, callable $fn): void
@@ -117,6 +118,59 @@ check('PDF-Bericht enthält Auswertung und gültige PDF-Struktur', function () u
     ok(str_contains($pdf, '/Type /Catalog') && str_contains($pdf, '/Type /Page') && str_contains($pdf, '/BaseFont /Courier') && str_contains($pdf, 'xref'), 'PDF-Objekte');
     ok(str_contains($pdf, '5 Antworten') && str_contains($pdf, 'L' . chr(228) . 'uft gut') && str_contains($pdf, 'Weiter so'), 'Berichtsinhalt');
     ok(!str_contains($pdf, str_repeat('W', 81)), 'lange Zeilen werden umgebrochen');
+});
+
+check('Auswertungsdaten decken alle Fragen, Antworttypen und Gruppenfilter ab', function () use ($survey) {
+    $rows = report_test_data($survey);
+    eq(count($rows), 24);
+    foreach ($rows as $row) eq(sanitize($survey, $row), $row, 'nur gültige Antworten auf sichtbare Fragen');
+    $report = aggregate($survey, $rows);
+    eq(count($report['questions']), count(questions($survey)));
+    foreach ($report['questions'] as $x) {
+        ok($x['answered'] > 0, $x['q']['id'] . ': Testantworten fehlen');
+        if (isset($x['counts'])) {
+            ok(!array_filter($x['counts'], fn($c) => $c['count'] === 0), $x['q']['id'] . ': Antwortoption ohne Testdaten');
+        }
+        if ($x['q']['type'] === 'scale') {
+            ok($x['mean'] >= 1 && $x['mean'] <= 5, $x['q']['id']);
+            eq(array_sum(array_column($x['counts'], 'count')), $x['answered']);
+        }
+        if ($x['q']['type'] === 'multi') {
+            ok(array_sum(array_column($x['counts'], 'count')) > $x['answered'], $x['q']['id'] . ': Mehrfachauswahl fehlt');
+        }
+    }
+    $overall = $report['questions'][0];
+    eq($overall['answered'], 22, 'freiwillig ausgelassene Antworten');
+    eq(array_column($overall['counts'], 'count'), [4, 4, 4, 4, 3, 3], 'alle Skalenwerte und keine Beurteilung');
+    eq($overall['mean'], 55 / 19, 'keine Beurteilung zählt nicht zum Mittelwert');
+    ok(count($overall['notes']) > 0, 'Kommentare');
+    foreach ($survey['reportFilters'] as $id) {
+        $q = current(array_filter(questions($survey), fn($q) => $q['id'] === $id));
+        foreach ($q['options'] as $i => $value) {
+            $filtered = aggregate($survey, $rows, ['q' => $id, 'v' => $value]);
+            if ($i === 2) {
+                eq($filtered, ['suppressed' => true], "$id: vier Antworten");
+                continue;
+            }
+            eq($filtered['n'], 10, $id);
+            ok($filtered['filtered']);
+            foreach ($filtered['questions'] as $x) {
+                ok($x['q']['type'] !== 'text' && $x['notes'] === [], 'keine Freitexte oder Kommentare');
+            }
+        }
+    }
+});
+
+check('Anonymitätsgrenze: 0 bis 5 Antworten in Gruppe und Rest', function () use ($survey) {
+    foreach (range(0, 5) as $selected) {
+        foreach (range(0, 5) as $rest) {
+            $rows = [...array_fill(0, $selected, ['answers' => ['alter' => '18–29'], 'notes' => []]),
+                ...array_fill(0, $rest, ['answers' => ['alter' => '30–45'], 'notes' => []])];
+            $r = aggregate($survey, $rows, ['q' => 'alter', 'v' => '18–29']);
+            if ($selected < 5 || ($rest > 0 && $rest < 5)) eq($r, ['suppressed' => true], "$selected / $rest");
+            else eq($r['n'], $selected, "$selected / $rest");
+        }
+    }
 });
 
 check('SMTP-Versand mit STARTTLS und AUTH LOGIN', function () {
@@ -360,10 +414,54 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         $post(['action' => 'invite', 's' => $slug, 'emails' => 'neu@example.org']);
         eq(count($mails()), 9, 'keine Einladungen nach Ende');
 
+        // Add complete synthetic responses to exercise all report filters and exports over HTTP.
+        $definition = json_decode(q('SELECT definition FROM surveys WHERE slug = ?', [$slug])->fetchColumn(), true);
+        $surveyId = (int) q('SELECT id FROM surveys WHERE slug = ?', [$slug])->fetchColumn();
+        foreach (report_test_data($definition) as $row) {
+            q('INSERT INTO responses (id, survey_id, data) VALUES (?, ?, ?)', [bin2hex(random_bytes(16)), $surveyId, state_json($row)]);
+        }
+        ok(str_contains($admin("?s=$slug"), '<b>30 Antworten</b>'), 'vollständige Gesamtauswertung');
+        foreach ($definition['reportFilters'] as $id) {
+            $fq = current(array_filter(questions($definition), fn($q) => $q['id'] === $id));
+            foreach ($fq['options'] as $i => $value) {
+                $path = 'admin.php?' . http_build_query(['s' => $slug, 'q' => $id, 'v' => $value]);
+                [, $html] = $http('GET', $path);
+                if ($i === 2) {
+                    ok(str_contains($html, 'Zu wenige Antworten') && !str_contains($html, 'Testkommentar'), "$id: kleine Gruppe");
+                    foreach (['csv', 'pdf'] as $export) {
+                        [, $body, $headers] = $http('GET', "$path&$export=1");
+                        ok(str_contains($body, 'Zu wenige Antworten') && !str_contains($headers, $export === 'csv' ? 'text/csv' : 'application/pdf'), "$id: kein $export bei kleiner Gruppe");
+                    }
+                    continue;
+                }
+                ok(str_contains($html, 'in dieser Auswahl') && !str_contains($html, 'Testkommentar') && !str_contains($html, 'Beispiel '), "$id: gefilterter Bericht ohne Texte");
+                [, $csv, $headers] = $http('GET', "$path&csv=1");
+                ok(str_contains($headers, 'text/csv') && str_contains($csv, 'gesamt_bewertung') && str_contains($csv, 'lg_angebot')
+                    && !str_contains($csv, 'allg_gut') && !str_contains($csv, 'Testkommentar'), "$id: gefiltertes CSV");
+                [, $pdf, $headers] = $http('GET', "$path&pdf=1");
+                ok(str_contains($headers, 'application/pdf') && str_starts_with($pdf, '%PDF-1.4')
+                    && !str_contains($pdf, 'Testkommentar') && !str_contains($pdf, 'Beispiel '), "$id: gefiltertes PDF");
+            }
+        }
+
+        // Merge the two large age groups: 26 selected, but only 4 remaining responses.
+        foreach (q('SELECT id, data FROM responses')->fetchAll() as $response) {
+            $row = json_decode($response['data'], true);
+            if (($row['answers']['alter'] ?? null) !== '30–45') continue;
+            $row['answers']['alter'] = '18–29';
+            q('UPDATE responses SET data = ? WHERE id = ?', [state_json($row), $response['id']]);
+        }
+        $path = 'admin.php?' . http_build_query(['s' => $slug, 'q' => 'alter', 'v' => '18–29']);
+        foreach (['', '&csv=1', '&pdf=1'] as $export) {
+            [, $body, $headers] = $http('GET', $path . $export);
+            ok(str_contains($body, 'Zu wenige Antworten') && !str_contains($headers, 'text/csv')
+                && !str_contains($headers, 'application/pdf'), 'Restgruppe mit vier Antworten sperrt Bericht und Exporte');
+        }
+
         // Delete the complete survey and import it again as a fresh run.
         $post(['action' => 'clear', 's' => $slug]);
         ok(str_contains($admin("?s=$slug"), 'Bitte das Löschen bestätigen'));
-        eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn()], [6, 7]);
+        eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn()], [30, 7]);
         eq($post(['action' => 'clear', 's' => $slug, 'confirm' => '1']), 'admin.php');
         eq([(int) q('SELECT COUNT(*) FROM responses')->fetchColumn(), (int) q('SELECT COUNT(*) FROM invitations')->fetchColumn(),
             (int) q('SELECT COUNT(*) FROM surveys')->fetchColumn()], [0, 0, 0]);
