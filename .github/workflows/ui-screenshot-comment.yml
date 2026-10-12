@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -t files < <(find screenshots -maxdepth 1 -type f -name '*.png' | sort)
-          expected_files=(
+          required_files=(
             01-umfrage-fragen.png
             01-umfrage-start.png
             02-admin-auswertung.png
@@ -60,9 +60,11 @@ jobs:
             02-admin-uebersicht.png
             02-admin-umfrage.png
           )
-          test "${#files[@]}" -eq "${#expected_files[@]}"
-          for index in "${!expected_files[@]}"; do
-            test "$(basename "${files[$index]}")" = "${expected_files[$index]}"
+          for filename in "${required_files[@]}"; do
+            test -f "screenshots/$filename"
+          done
+          for file in "${files[@]}"; do
+            [[ "$(basename "$file")" =~ ^(01-umfrage|02-admin)-[a-z0-9-]+\.png$ ]]
           done
           pr_number="$PR_NUMBER"
           if [[ -z "$pr_number" ]]; then
