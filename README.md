@@ -20,7 +20,7 @@ Ziele:
 
 | Anforderung | Umsetzung |
 |---|---|
-| Web-basiert, für Handys optimiert | Eine Kategorie pro Seite, große Antwortflächen, Fortschrittsbalken, Dark Mode |
+| Web-basiert, für Handys optimiert | Eine Kategorie pro Seite, große Antwortflächen, Fortschrittsbalken, Dark Mode. Auf Mobilgeräten stehen „Weiter“ und „Zurück“ hinter der letzten sichtbaren Frage; am Desktop bleiben sie am Bildschirmrand |
 | Einladung per E-Mail mit Link | Adminoberfläche: Adressen einfügen → jede Person bekommt einen persönlichen Link |
 | Erneut einladen | Button „Erneut einladen“ je Person, z. B. wenn die Mail im Spam gelandet ist. Der Link bleibt gleich |
 | Zwischenspeichern, Absenden nur auf Wunsch | Automatisches Speichern während der Eingabe. Nach „Absenden“ sind keine Änderungen mehr möglich |
@@ -45,6 +45,8 @@ Ziele:
 7. **Datensparsamkeit.** Die Anwendung speichert keine IP-Adressen und setzt `Referrer-Policy: no-referrer`. Beim Beenden der Umfrage werden alle E-Mail-Adressen gelöscht.
 
 **Verbleibendes Risiko:** Wer während der Umfrage Zugriff auf Webspace **und** Datenbank hat, könnte Entwürfe vor dem Absenden lesen. Den Webspace sollte deshalb möglichst jemand betreuen, der **nicht** zur Einheitsführung gehört. Der Webserver des Hosters protokolliert in der Regel IP-Adressen und aufgerufene URLs. Diese Logs enthalten aber keine Antworten. Freitexte können durch ihren Inhalt Rückschlüsse zulassen, darauf weist die Umfrage hin.
+
+**Weniger als 5 Antworten in einer Gruppe:** Die Antworten bleiben gespeichert und fließen in „Alle Antworten“ ein, sofern insgesamt mindestens 5 Teilnahmen vorliegen. Nur die betreffende Gruppenauswertung wird mit einem Anonymitätshinweis gesperrt – einschließlich CSV- und PDF-Export. Auch eine große Gruppe bleibt gesperrt, wenn außerhalb der Auswahl nur 1–4 Antworten verbleiben. Eine leere Restgruppe ist dagegen erlaubt. Freitexte und Kommentare erscheinen grundsätzlich nur in der Gesamtauswertung. Die Grenze gilt für die Teilnahmen in der Auswahl, nicht für die Zahl der Antworten auf jede einzelne freiwillige Frage.
 
 ## Architektur
 
@@ -188,6 +190,8 @@ node tools/catalog.mjs public/surveys/dahlbruch-2026.json > docs/fragenkatalog.m
 
 Die Datenbank lässt sich über `DB_DSN`, `DB_USER` und `DB_PASS` anpassen, z. B. `DB_DSN='mysql:host=127.0.0.1;port=13306;dbname=fff_test;charset=utf8mb4'`. Der Datenbankname muss „test“ enthalten, weil die Tests die Tabellen löschen. Der Ende-zu-Ende-Test startet die Anwendung unter `http://127.0.0.1:8124/umfrage/`, also wie auf einem Webspace in einem Unterordner. Ist keine Datenbank erreichbar, wird der Ende-zu-Ende-Test übersprungen. In CI zählt das als Fehler.
 
+`tests/report-data.php` liefert 24 synthetische Teilnahmen für Auswertungstests und UI-Screenshots: alle Fragen und Antwortoptionen, Skalenwerte 1–5 und „Kann ich nicht beurteilen“, Mehrfachauswahl, Freitexte, Kommentare, ausgelassene Antworten und bedingte Fragen. Für jeden Gruppenfilter gibt es Gruppen mit 10, 10 und 4 Teilnahmen. Die Tests prüfen außerdem die Grenze von 0–5 Antworten in Auswahl und Rest sowie die Anonymität in HTML, CSV und PDF.
+
 **Lokal ausprobieren:**
 
 ```sh
@@ -200,7 +204,7 @@ Danach `http://127.0.0.1:8123/admin.php` öffnen, das Passwort ist `geheim-lokal
 
 GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push auf `main` und jedem Pull Request alle Tests aus: mit PHP 8.1 + MariaDB 10.6 und mit PHP 8.4 + MySQL 8.4. Außerdem prüft der Workflow, ob der Fragenkatalog aktuell ist.
 
-Bei jedem Pull Request, der `public/` betrifft, erzeugt `.github/workflows/ui-screenshots.yml` per Playwright Screenshots der Umfrage- und Admin-Seiten (`tests/ui-screenshots.mjs`). `.github/workflows/ui-screenshot-comment.yml` bettet sie anschließend als Kommentar in den Pull Request ein. Die Bilder liegen im Branch `ui-screenshots-pr-<Nummer>`, der beim Schließen des Pull Requests gelöscht wird (`ui-screenshot-cleanup.yml`).
+Bei jedem Pull Request, der `public/` betrifft, prüft `.github/workflows/ui-screenshots.yml` per Playwright die mobile Navigation im Hoch- und Querformat sowie die unveränderte Desktop-Navigation (`tests/mobile-navigation.mjs`) und erzeugt Screenshots der Umfrage- und Admin-Seiten (`tests/ui-screenshots.mjs`). `.github/workflows/ui-screenshot-comment.yml` bettet sie anschließend als Kommentar in den Pull Request ein. Die Bilder liegen im Branch `ui-screenshots-pr-<Nummer>`, der beim Schließen des Pull Requests gelöscht wird (`ui-screenshot-cleanup.yml`).
 
 `.github/workflows/deploy.yml` bringt `main` nach erfolgreicher CI auf den Webspace, siehe [Automatisches Deployment](#automatisches-deployment-mit-github-actions).
 

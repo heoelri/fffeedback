@@ -6,6 +6,8 @@ on:
       - public/**
       - tools/seed-local.php
       - tests/ui-screenshots.mjs
+      - tests/report-data.php
+      - tests/mobile-navigation.mjs
       - .github/workflows/ui-screenshots.yml
   workflow_dispatch:
 
@@ -45,6 +47,8 @@ jobs:
           npm install --prefix /tmp/ui --no-save --package-lock=false playwright@1.55.0
           /tmp/ui/node_modules/.bin/playwright install --with-deps chromium
           cp tests/ui-screenshots.mjs /tmp/ui/
+          cp tests/mobile-navigation.mjs /tmp/ui/
+          REPO_ROOT="$PWD" node /tmp/ui/mobile-navigation.mjs
           REPO_ROOT="$PWD" node /tmp/ui/ui-screenshots.mjs
       - name: Screenshots als Artefakt speichern
         if: always()

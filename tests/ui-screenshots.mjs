@@ -27,16 +27,12 @@ try {
     await sleep(100);
   }
 
-  // At least MIN_GROUP (5) answers, otherwise the report shows nothing.
-  const answers = [
-    [1, 2, '18–29', 'Gute Kameradschaft'], [2, 2, '18–29', 'Neue Übungsthemen'], [2, 1, '30–45', 'Einsatzleitung'],
-    [3, 4, '30–45', 'Mehr Ausbildung'], [2, 3, '46 und älter', 'Organisation'], [4, 2, '30–45', 'Fahrzeuge'],
-  ];
-  for (const [i, [gesamt, kameradschaft, alter, text]] of answers.entries()) {
+  const answers = JSON.parse(execFileSync('php', ['tests/report-data.php'], { cwd: root, env }).toString());
+  for (const [i, response] of answers.entries()) {
     const r = await fetch(`${invite(`antwort${i}@example.org`)}&a=submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers: { gesamt_bewertung: gesamt, kameradschaft, alter, allg_gut: text }, notes: {} }),
+      body: JSON.stringify(response),
     });
     if (r.status !== 204) throw new Error(`Absenden fehlgeschlagen: ${r.status}`);
   }
@@ -69,6 +65,12 @@ try {
   await page.getByRole('button', { name: 'Umfrage beenden' }).click();
   await page.getByText('in dieser Auswahl').waitFor();
   await shot('02-admin-auswertung');
+  await page.getByRole('link', { name: '18–29', exact: true }).click();
+  await page.locator('b').filter({ hasText: /^10 Antworten$/ }).waitFor();
+  await shot('02-admin-auswertung-gruppe');
+  await page.getByRole('link', { name: '46 und älter', exact: true }).click();
+  await page.getByText(/Zu wenige Antworten für diese Auswahl/).waitFor();
+  await shot('02-admin-auswertung-gesperrt');
 } finally {
   await browser?.close();
   server.kill();
