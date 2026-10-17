@@ -37,6 +37,7 @@ button:disabled { opacity: .5; }
 .report { max-width: 60rem; padding-bottom: 2rem; }
 .report table { border-collapse: collapse; width: 100%; }
 .report td { padding: .2rem .5rem .2rem 0; vertical-align: middle; }
+.report th { padding: .2rem .5rem .2rem 0; text-align: left; }
 .report td:first-child { width: 40%; }
 .report progress { min-width: 6rem; }
 .report h3 { margin-bottom: 0; font-size: 1rem; }
@@ -49,4 +50,4 @@ button:disabled { opacity: .5; }
 .invites td { border-top: 1px solid var(--line); padding: .3rem .5rem .3rem 0; }
 .invites form { margin: 0; }
 .invites button { padding: .4rem .8rem; min-width: 0; font-size: .9rem; }
-input[type=password], select { font: inherit; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; }
+input[type=password], input[type=search], select { font: inherit; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; }
