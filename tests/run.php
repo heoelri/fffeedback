@@ -339,12 +339,43 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         eq([$status, json_decode($body, true)['draft']], [200, null], 'unlesbarer Entwurf wird verworfen');
         q('UPDATE invitations SET draft = NULL WHERE email = ?', ['p6@example.org']);
 
+        // Invitation filters and sorting work together without changing participation totals.
+        $invitationEmails = function (array $filter = []) use ($admin, $slug): array {
+            $html = $admin('?' . http_build_query(['s' => $slug] + $filter));
+            ok(str_contains($html, '<th scope="col">E-Mail</th>') && str_contains($html, '<th scope="col">Status</th>')
+                && str_contains($html, '<th scope="col">Einladungen</th>'), 'Spaltenüberschriften');
+            preg_match_all('/<tr><td>([^<]*@[^<]*)<\/td>/', $html, $matches);
+            return $matches[1];
+        };
+        eq($invitationEmails(), $emails, 'Standard: E-Mail aufsteigend');
+        eq($invitationEmails(['sort' => 'email_desc']), array_reverse($emails));
+        eq($invitationEmails(['email' => ' P0@EXAMPLE ']), [$emails[0]], 'Teilstring, Groß-/Kleinschreibung, Leerzeichen');
+        eq($invitationEmails(['status' => 'begonnen']), array_slice($emails, 0, 2));
+        eq($invitationEmails(['status' => 'offen']), array_slice($emails, 2));
+        eq($invitationEmails(['status' => 'abgesendet']), []);
+        eq($invitationEmails(['sort' => 'status_asc']), $emails, 'begonnen vor offen');
+        eq($invitationEmails(['sort' => 'status_desc']), [...array_slice($emails, 2), ...array_slice($emails, 0, 2)]);
+        eq($invitationEmails(['email' => 'p1', 'status' => 'begonnen', 'sort' => 'email_desc']), [$emails[1]]);
+        foreach (['%', '_', "' OR 1=1 --"] as $literal) eq($invitationEmails(['email' => $literal]), [], 'keine Wildcards oder SQL-Ausführung');
+        $filteredHtml = $admin("?s=$slug&email=unbekannt&status=offen&sort=status_desc");
+        ok(str_contains($filteredHtml, 'Keine passenden Einladungen.') && str_contains($filteredHtml, 'value="unbekannt"')
+            && str_contains($filteredHtml, 'value="offen" selected') && str_contains($filteredHtml, 'value="status_desc" selected')
+            && str_contains($filteredHtml, '<td>Eingeladen</td><td>7</td>'), 'Filter bleiben sichtbar, Gesamtstatistik unverändert');
+        $escapedHtml = $admin('?' . http_build_query(['s' => $slug, 'email' => '"><script>']));
+        ok(str_contains($escapedHtml, 'value="&quot;&gt;&lt;script&gt;"') && !str_contains($escapedHtml, '<script>'), 'Suchbegriff HTML-maskiert');
+        foreach ([['sort' => 'email; DROP TABLE invitations'], ['status' => 'ungültig'], ['email' => ['x']], ['status' => ['x']], ['sort' => ['x']]] as $bad) {
+            eq($http('GET', 'admin.php?' . http_build_query(['s' => $slug] + $bad))[0], 400, 'ungültige Filter abweisen');
+        }
+
         for ($i = 0; $i < 6; $i++) {
             eq($api($tokens[$i], 'submit', ['answers' => ['alter' => $i < 3 ? '18–29' : '30–45', 'gesamt_bewertung' => 4, 'allg_gut' => "Text $i"]])[0], 204);
         }
         eq($api($tokens[0], 'submit', ['answers' => []])[0], 409, 'nur einmal absenden');
         eq($api($tokens[0], 'draft', ['answers' => []])[0], 409, 'nach Absenden keine Änderung');
         eq(json_decode($api($tokens[0], 'load')[1], true)['submitted'], true);
+        eq($invitationEmails(['status' => 'abgesendet']), array_slice($emails, 0, 6), 'abgesendet hat Vorrang vor begonnen');
+        eq($invitationEmails(['status' => 'begonnen']), []);
+        eq($invitationEmails(['sort' => 'status_desc']), [$emails[6], ...array_slice($emails, 0, 6)]);
 
         $responses = q('SELECT * FROM responses')->fetchAll();
         eq(count($responses), 6);

@@ -26,6 +26,7 @@ Ziele:
 | Zwischenspeichern, Absenden nur auf Wunsch | Automatisches Speichern während der Eingabe. Nach „Absenden“ sind keine Änderungen mehr möglich |
 | Anonymität | Siehe [Anonymitätskonzept](#anonymitätskonzept) |
 | Nutzungsstatistik | Eingeladen, Begonnen, Abgesendet, versendete Erinnerungen, Status je Einladung |
+| Einladungsliste | Spaltenüberschriften; nach E-Mail-Teilstring und Status filtern, nach E-Mail oder Status auf- und absteigend sortieren |
 | Auswertung | Nach Ende der Umfrage: Verteilungen, Mittelwerte, Kommentare und Freitexte, CSV-Export der Zahlen |
 | Auswertung nach Altersklasse, Mitgliedsdauer und Qualifikation | Filter im Bericht, nur für Gruppen ab 5 Antworten, ohne Freitexte |
 | Erinnerungen | Ein Klick (mit Bestätigung) schreibt allen, die noch nicht abgesendet haben |

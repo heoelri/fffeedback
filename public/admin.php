@@ -214,14 +214,46 @@ if (!$s['closed']) {
         . action_form($slug, 'close', 'Umfrage beenden', '<p><label><input type="checkbox" name="confirm" value="1" required> Ja, Umfrage endgültig beenden</label></p>', 'secondary')
         . '</section>';
 
+    $email = $_GET['email'] ?? '';
+    $statusFilter = $_GET['status'] ?? '';
+    $sort = $_GET['sort'] ?? 'email_asc';
+    $statuses = ['offen' => 'submitted = 0 AND started = 0', 'begonnen' => 'submitted = 0 AND started <> 0', 'abgesendet' => 'submitted <> 0'];
+    $sorts = [
+        'email_asc' => ['E-Mail aufsteigend', 'email ASC'],
+        'email_desc' => ['E-Mail absteigend', 'email DESC'],
+        'status_asc' => ['Status aufsteigend', 'status ASC, email ASC'],
+        'status_desc' => ['Status absteigend', 'status DESC, email ASC'],
+    ];
+    if (!is_string($email) || !is_string($statusFilter) || !is_string($sort)
+        || ($statusFilter !== '' && !isset($statuses[$statusFilter])) || !isset($sorts[$sort])) {
+        http_response_code(400);
+        page('Fehler', '<p class="warn">Ungültiger Einladungsfilter oder ungültige Sortierung.</p>');
+    }
+    $params = [$s['id'], trim($email)];
+    $where = 'survey_id = ? AND LOCATE(LOWER(?), LOWER(email)) > 0';
+    if ($statusFilter !== '') $where .= ' AND ' . $statuses[$statusFilter];
     $rows = '';
-    foreach (q('SELECT id, email, started, submitted, invites, reminders FROM invitations WHERE survey_id = ? ORDER BY email', [$s['id']]) as $i) {
-        $status = $i['submitted'] ? 'abgesendet' : ($i['started'] ? 'begonnen' : 'offen');
+    foreach (q("SELECT id, email, submitted, invites, reminders,
+        CASE WHEN submitted <> 0 THEN 'abgesendet' WHEN started <> 0 THEN 'begonnen' ELSE 'offen' END AS status
+        FROM invitations WHERE $where ORDER BY " . $sorts[$sort][1], $params) as $i) {
+        $status = $i['status'];
         $mails = $i['invites'] ? "{$i['invites']} Einladung(en), {$i['reminders']} Erinnerung(en)" : '<strong>nicht zugestellt</strong>';
         $button = $i['submitted'] ? '' : action_form($slug, 'reinvite', 'Erneut einladen', '<input type="hidden" name="id" value="' . $i['id'] . '">', 'secondary');
         $rows .= '<tr><td>' . esc($i['email']) . "</td><td>$status</td><td>$mails</td><td>$button</td></tr>";
     }
-    $html .= '<h2>Einladungen</h2>' . ($rows ? "<table class=\"invites\">$rows</table>" : '<p>Noch niemand eingeladen.</p>')
+    $statusOptions = '<option value="">Alle</option>';
+    foreach ($statuses as $value => $_) $statusOptions .= '<option value="' . $value . '"' . ($statusFilter === $value ? ' selected' : '') . '>' . $value . '</option>';
+    $sortOptions = '';
+    foreach ($sorts as $value => [$label]) $sortOptions .= '<option value="' . $value . '"' . ($sort === $value ? ' selected' : '') . '>' . esc($label) . '</option>';
+    $html .= '<h2 id="einladungen">Einladungen</h2><form method="get" action="admin.php#einladungen">'
+        . '<input type="hidden" name="s" value="' . esc($slug) . '">'
+        . '<p><label>E-Mail <input type="search" name="email" value="' . esc($email) . '" placeholder="E-Mail enthält …"></label> '
+        . '<label>Status <select name="status">' . $statusOptions . '</select></label> '
+        . '<label>Sortierung <select name="sort">' . $sortOptions . '</select></label></p>'
+        . '<button>Filtern / Sortieren</button> <a href="?s=' . urlencode($slug) . '#einladungen">Zurücksetzen</a></form>'
+        . '<table class="invites"><thead><tr><th scope="col">E-Mail</th><th scope="col">Status</th>'
+        . '<th scope="col">Einladungen</th><th scope="col">Aktionen</th></tr></thead><tbody>'
+        . ($rows ?: '<tr><td colspan="4">' . ($invited ? 'Keine passenden Einladungen.' : 'Noch niemand eingeladen.') . '</td></tr>') . '</tbody></table>'
         . '<h2>Auswertung</h2><p class="warn">Die Auswertung ist erst nach dem Beenden der Umfrage verfügbar. '
         . 'So kann niemand durch Vergleich vor und nach einer einzelnen Teilnahme Rückschlüsse ziehen.</p>';
     page($def['title'], $html);
