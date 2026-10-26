@@ -10,7 +10,7 @@
   },
   "reminder": {
     "subject": "Erinnerung: {title}",
-    "text": "Hallo,\n\ndu hast an unserer anonymen Umfrage noch nicht teilgenommen. Jede Stimme hilft uns, besser zu werden:\n\n{link}\n\nBereits begonnene Antworten sind gespeichert.\n\nDanke!\nDeine Einheitsführung"
+    "text": "Hallo,\n\ndies ist eine Erinnerung an unsere anonyme Umfrage. Du hast deine Antworten noch nicht abgesendet. Jede Stimme hilft uns, besser zu werden:\n\n{link}\n\nBereits begonnene Antworten sind gespeichert.\n\nDanke!\nDeine Einheitsführung"
   },
   "sections": [
     {
