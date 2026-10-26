@@ -34,7 +34,12 @@ $survey = json_decode(file_get_contents(__DIR__ . '/../public/surveys/dahlbruch-
 // ---- Unit ----
 
 check('mitgelieferte Umfragen sind gültig', function () {
-    foreach (glob(__DIR__ . '/../public/surveys/*.json') as $f) eq(validate_survey(json_decode(file_get_contents($f), true)), [], basename($f));
+    foreach (glob(__DIR__ . '/../public/surveys/*.json') as $f) {
+        $def = json_decode(file_get_contents($f), true);
+        eq(validate_survey($def), [], basename($f));
+        ok(str_contains($def['reminder']['subject'], 'Erinnerung'), basename($f) . ': Erinnerungsbetreff');
+        ok(str_contains($def['reminder']['text'], 'dies ist eine Erinnerung'), basename($f) . ': Erinnerungshinweis im Text');
+    }
 });
 
 check('validate_survey findet Fehler', function () {
@@ -411,6 +416,7 @@ check('Ablauf: importieren, einladen, zwischenspeichern, absenden, erneut einlad
         ok(str_contains($admin("?s=$slug"), 'Keine Erinnerungen versendet'), 'doppelt abgeschickt');
         eq(count($mails()), 9, 'nur eine Erinnerung');
         ok(str_starts_with($last()['subject'], 'Erinnerung'), 'Erinnerungstext');
+        ok(str_contains($last()['text'], 'dies ist eine Erinnerung'), 'Erinnerungshinweis im Nachrichtentext');
 
         // mail() disabled by the hoster: readable error page instead of a blank 500 (same session, other server)
         $port = 8125;
